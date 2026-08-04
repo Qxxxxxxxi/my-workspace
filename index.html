@@ -244,6 +244,11 @@ tbody tr:hover{background:var(--bg-primary)}
 .overview-greeting{font-size:26px;font-weight:700;margin-bottom:4px}
 .overview-date{font-size:14px;color:var(--text-secondary);margin-bottom:var(--sp-lg)}
 .overview-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:var(--sp-md);margin-bottom:var(--sp-lg)}
+.backup-reminder{background:linear-gradient(135deg,#fff3cd,#ffe69c);border:1px solid #ffc107;border-radius:var(--radius-card);padding:12px var(--sp-md);margin-bottom:var(--sp-md);display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#856404;cursor:pointer;transition:opacity .2s;animation:backupPulse 2s ease-in-out infinite}
+.backup-reminder.hidden{display:none}
+.backup-reminder-dismiss{font-size:16px;opacity:.6;padding:0 4px;cursor:pointer}
+.backup-reminder-dismiss:hover{opacity:1}
+@keyframes backupPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,193,7,.4)}50%{box-shadow:0 0 0 6px rgba(255,193,7,0)}}
 .ov-card{background:var(--bg-card);border-radius:var(--radius-card);padding:var(--sp-md);box-shadow:var(--shadow-card);cursor:pointer;transition:transform .15s;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px}
 .ov-card:hover{transform:translateY(-2px)}
 .ov-card .ov-icon{font-size:26px}
@@ -486,6 +491,7 @@ tbody tr:hover{background:var(--bg-primary)}
     <section class="page active" id="page-overview">
       <div class="overview-greeting" id="ovGreeting"></div>
       <div class="overview-date" id="ovDate"></div>
+      <div class="backup-reminder hidden" id="backupReminder" onclick="DataIO.exportAll()"><span>📥 <span id="backupReminderMsg"></span></span><span class="backup-reminder-dismiss" onclick="event.stopPropagation();DataIO._dismissBackup()">✕</span></div>
       <div class="overview-cards" id="ovCards"></div>
     </section>
 
@@ -1869,6 +1875,13 @@ const Overview = {
       {icon:'🍳',label:'食谱',value:recipes.records.length+' 道菜',page:'recipe'}
     ];
     el('ovCards').innerHTML = cards.map(c=>`<div class="ov-card" onclick="Nav.go('${c.page}')"><div class="ov-icon">${c.icon}</div><div class="ov-label">${c.label}</div><div class="ov-value">${c.value}</div></div>`).join('');
+    // Backup reminder
+    const age=DataIO._checkBackupAge(), dismissed=localStorage.getItem('wb_backup_dismissed');
+    const rem=el('backupReminder'), msg=el('backupReminderMsg');
+    if(!dismissed&&(age===-1||age>=7)){
+      rem.classList.remove('hidden');
+      msg.textContent=age===-1?'尚未备份过数据，点此导出备份':`距上次备份已 ${age} 天，点此导出备份`;
+    }else{ rem.classList.add('hidden'); }
   },
   _nextAnni(recs){
     if(!recs.length) return null; const now = new Date(), today = todayStr(); let closest=null,cd=Infinity;
@@ -2724,7 +2737,21 @@ const Settings = {
 
 /* ===== Data IO ===== */
 const DataIO = {
-  exportAll(){ const data={version:'2.0',exportDate:new Date().toISOString(),fatLoss:DB.fatLoss,expense:DB.expense,todos:DB.todos,events:DB.events,anniversaries:DB.anniversaries,memos:DB.memos,period:DB.period,recipes:DB.recipes,pantry:DB.pantry,settings:DB.settings}; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url;a.download='个人综合工作台_数据备份_'+todayStr()+'.json'; document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);toast('数据已导出'); },
+  exportAll(){ const data={version:'2.0',exportDate:new Date().toISOString(),fatLoss:DB.fatLoss,expense:DB.expense,todos:DB.todos,events:DB.events,anniversaries:DB.anniversaries,memos:DB.memos,period:DB.period,recipes:DB.recipes,pantry:DB.pantry,settings:DB.settings}; const json=JSON.stringify(data,null,2); const blob=new Blob([json],{type:'application/json'}); const filename='个人综合工作台_数据备份_'+todayStr()+'.json';
+    // Track backup time
+    localStorage.setItem('wb_last_backup',Date.now().toString());
+    // iOS: use native Share Sheet to save to Files app
+    const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent);
+    if(isIOS&&navigator.share&&navigator.canShare&&navigator.canShare({files:[new File([blob],filename,{type:'application/json'})]})){
+      const file=new File([blob],filename,{type:'application/json'});
+      navigator.share({files:[file],title:'数据备份'}).then(()=>{toast('备份已保存');}).catch(err=>{
+        if(err.name!=='AbortError') this._fallbackDownload(blob,filename);
+      });
+    }else{ this._fallbackDownload(blob,filename); }
+  },
+  _fallbackDownload(blob,filename){ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url;a.download=filename; document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);toast('数据已导出'); },
+  _checkBackupAge(){ const t=localStorage.getItem('wb_last_backup'); if(!t) return -1; return Math.floor((Date.now()-parseInt(t))/(1000*60*60*24)); },
+  _dismissBackup(){ localStorage.setItem('wb_backup_dismissed','1'); el('backupReminder').classList.add('hidden'); },
   importAll(e){ const file=e.target.files[0];if(!file) return; const reader=new FileReader(); reader.onload=function(ev){ try{ const data=JSON.parse(ev.target.result); if(!confirm('导入将覆盖当前所有数据，确定继续？')) return; if(data.fatLoss) DB.fatLoss=data.fatLoss; if(data.expense) DB.expense=data.expense; if(data.todos) DB.todos=data.todos; if(data.events) DB.events=data.events; if(data.anniversaries) DB.anniversaries=data.anniversaries; if(data.memos) DB.memos=data.memos; if(data.period) DB.period=data.period; if(data.recipes) DB.recipes=data.recipes; if(data.pantry) DB.pantry=data.pantry; if(data.settings) DB.settings=data.settings; toast('数据导入成功！'); Theme.init(); Nav.renderPage(); }catch(err){ toast('导入失败：文件格式不正确'); } }; reader.readAsText(file);e.target.value=''; },
   clearAll(){ localStorage.clear(); Theme.init(); Nav.go('overview'); setTimeout(()=>toast('所有数据已清除'),100); }
 };
