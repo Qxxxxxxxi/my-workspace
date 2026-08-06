@@ -268,11 +268,31 @@ tbody tr:hover{background:var(--bg-primary)}
 .ov-weather-rain-alert{font-size:12px;color:var(--accent-blue);font-weight:600;margin-top:2px}
 .ov-holiday{flex:1;background:var(--bg-card);border-radius:var(--radius-card);padding:12px var(--sp-md);box-shadow:var(--shadow-card)}
 .ov-holiday-title{font-size:13px;color:var(--text-secondary);margin-bottom:6px;font-weight:600}
-.ov-holiday-item{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
-.ov-holiday-today{color:var(--accent-orange);font-weight:700}
-.ov-holiday-name{color:var(--text-primary)}
-.ov-holiday-date{color:var(--text-tertiary);font-size:12px}
+.ov-holiday-list{display:flex;flex-wrap:wrap;gap:6px}
+.ov-holiday-tag{font-size:12px;padding:3px 9px;border-radius:10px;background:var(--bg-primary);border:1px solid var(--border-subtle);cursor:pointer;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:3px}
+.ov-holiday-tag:active{transform:scale(.95)}
+.ov-holiday-tag.today{background:var(--accent-orange);color:#fff;border-color:var(--accent-orange);font-weight:700}
+.ov-holiday-tag.today .holi-dot{background:#fff}
+.ov-holiday-tag.recipe-link{background:#e8f5e9;border-color:#81c784}
+.ov-holiday-tag.anni-link{background:#fce4ec;border-color:#f48fb1}
+.ov-holiday-tag.todo-link{background:#fff8e1;border-color:#ffcc02}
+.holi-dot{width:5px;height:5px;border-radius:50%;background:var(--accent-purple);flex-shrink:0}
+.holi-date{font-size:10px;color:var(--text-tertiary);margin-left:2px}
+.ov-holiday-tag.today .holi-date{color:rgba(255,255,255,.8)}
 .ov-holiday-none{font-size:13px;color:var(--text-tertiary);padding:8px 0;text-align:center}
+/* Holiday detail modal */
+.hd-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center}
+.hd-overlay.show{display:flex}
+.hd-modal{background:var(--bg-card);border-radius:16px;width:90%;max-width:380px;padding:var(--sp-lg);position:relative;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.hd-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.hd-title{font-size:20px;font-weight:700}
+.hd-date{font-size:13px;color:var(--text-secondary);margin-bottom:12px}
+.hd-desc{font-size:14px;color:var(--text-primary);line-height:1.7;margin-bottom:16px}
+.hd-actions{display:flex;gap:8px;flex-wrap:wrap}
+.hd-btn{flex:1;min-width:70px;padding:8px 6px;border-radius:8px;border:1.5px solid var(--border-color);background:var(--bg-primary);font-size:12px;cursor:pointer;text-align:center;transition:all .15s}
+.hd-btn:active{transform:scale(.96)}
+.hd-btn.primary{background:var(--accent-blue);color:#fff;border-color:var(--accent-blue)}
+.hd-btn.warn{background:var(--accent-orange);color:#fff;border-color:var(--accent-orange)}
 /* Work countdown */
 .ov-work{background:var(--bg-card);border-radius:var(--radius-card);padding:12px var(--sp-md);box-shadow:var(--shadow-card);cursor:pointer;transition:transform .15s;margin-bottom:var(--sp-lg);display:flex;justify-content:space-between;align-items:center}
 .ov-work:active{transform:scale(.98)}
@@ -572,7 +592,7 @@ tbody tr:hover{background:var(--bg-primary)}
         </div>
         <div class="ov-holiday" id="ovHoliday">
           <div class="ov-holiday-title">📅 本月节日</div>
-          <div id="ovHolidayList"><div class="ov-holiday-none">加载中…</div></div>
+          <div class="ov-holiday-list" id="ovHolidayList"><div class="ov-holiday-none">加载中…</div></div>
         </div>
       </div>
       <div class="ov-work" id="ovWork" onclick="WorkSchedule.showSettings()">
@@ -588,6 +608,16 @@ tbody tr:hover{background:var(--bg-primary)}
       <div class="backup-reminder hidden" id="backupReminder" onclick="DataIO.exportAll()"><span>📥 <span id="backupReminderMsg"></span></span><span class="backup-reminder-dismiss" onclick="event.stopPropagation();DataIO._dismissBackup()">✕</span></div>
       <div class="overview-cards" id="ovCards"></div>
     </section>
+
+    <!-- ===== Holiday Detail Modal ===== -->
+    <div class="hd-overlay" id="hdOverlay" onclick="if(event.target===this)Holidays.closeDetail()">
+      <div class="hd-modal" onclick="event.stopPropagation()">
+        <div class="hd-head"><div class="hd-title" id="hdTitle"></div><button onclick="Holidays.closeDetail()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">✕</button></div>
+        <div class="hd-date" id="hdDate"></div>
+        <div class="hd-desc" id="hdDesc"></div>
+        <div class="hd-actions" id="hdActions"></div>
+      </div>
+    </div>
 
     <!-- ===== Hourly Weather Modal ===== -->
     <div class="wx-overlay" id="wxOverlay" onclick="if(event.target===this)Weather.closeHourly()">
@@ -1806,6 +1836,246 @@ const PRESET_RECIPES = [
     steps:["锅中加入800ml清水烧开","放入关东煮调料包搅匀","放入切块的南瓜或红薯及时令蔬菜煮至半熟","打入4个鸡蛋盖盖小火焖煮至蛋熟即可。"],
     cookTime:'', difficulty:'', isPreset:true, createdAt:131000
   },
+  {
+    id:"preset_132", name:"泡面", emoji:"🍜",
+    photo:'', tags:["主食","家常"], category:"主食", calories:470,
+    ingredients:[{name:"方便面饼",amount:"1 块",unit:''},{name:"调料包",amount:"1 包",unit:''}],
+    seasonings:[{name:"自带调料",amount:"1 包",unit:''}],
+    steps:["锅中加水烧开","放入面饼煮3分钟","加入调料包拌匀即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:132000
+  },
+  {
+    id:"preset_133", name:"粽子（鲜肉粽）", emoji:"🍙",
+    photo:'', tags:["主食","家常"], category:"主食", calories:280,
+    ingredients:[{name:"鲜肉粽",amount:"1 个（约150g）",unit:''}],
+    seasonings:[],
+    steps:["冷水下锅，水沸后煮15-20分钟","或用蒸锅蒸15分钟即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:133000
+  },
+  {
+    id:"preset_134", name:"月饼（五仁）", emoji:"🥮",
+    photo:'', tags:["家常"], category:"家常", calories:415,
+    ingredients:[{name:"五仁月饼",amount:"1 个（约100g）",unit:''}],
+    seasonings:[],
+    steps:["开袋即食，配茶更佳。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:134000
+  },
+  {
+    id:"preset_135", name:"饺子（猪肉白菜水饺）", emoji:"🥟",
+    photo:'', tags:["主食","家常"], category:"主食", calories:230,
+    ingredients:[{name:"猪肉白菜水饺",amount:"12 个（约200g）",unit:''}],
+    seasonings:[{name:"醋",amount:"适量",unit:''},{name:"生抽",amount:"少许",unit:''}],
+    steps:["水开后下饺子，水沸加半碗冷水","重复2-3次至饺子浮起即可捞出。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:135000
+  },
+  {
+    id:"preset_136", name:"包子（猪肉大包）", emoji:"🥟",
+    photo:'', tags:["主食","家常"], category:"主食", calories:227,
+    ingredients:[{name:"猪肉大包",amount:"1 个（约120g）",unit:''}],
+    seasonings:[],
+    steps:["蒸锅上汽后放入包子，中火蒸8-10分钟即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:136000
+  },
+  {
+    id:"preset_137", name:"汤圆（黑芝麻）", emoji:"🍡",
+    photo:'', tags:["家常"], category:"家常", calories:245,
+    ingredients:[{name:"黑芝麻汤圆",amount:"8-10 个（约150g）",unit:''}],
+    seasonings:[{name:"桂花",amount:"少许（可选）",unit:''}],
+    steps:["水沸后放入汤圆，转中火","汤圆浮起后再煮1分钟即可","连汤盛出，可撒少许桂花。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:137000
+  },
+  {
+    id:"preset_138", name:"年糕（熟糯米年糕）", emoji:"🍡",
+    photo:'', tags:["主食"], category:"主食", calories:122,
+    ingredients:[{name:"熟糯米年糕",amount:"100g",unit:''}],
+    seasonings:[{name:"白糖",amount:"少许（可选）",unit:''}],
+    steps:["蒸热或用少量油煎至表面微黄即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:138000
+  },
+  {
+    id:"preset_139", name:"白米饭（熟）", emoji:"🍚",
+    photo:'', tags:["主食"], category:"主食", calories:116,
+    ingredients:[{name:"熟白米饭",amount:"100g（约半碗）",unit:''}],
+    seasonings:[],
+    steps:["正常煮饭即可。100g熟饭≈半碗。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:139000
+  },
+  {
+    id:"preset_140", name:"馒头（白面蒸馒头）", emoji:"🥖",
+    photo:'', tags:["主食"], category:"主食", calories:223,
+    ingredients:[{name:"白面馒头",amount:"1 个（约100g）",unit:''}],
+    seasonings:[],
+    steps:["蒸锅上汽后蒸5-8分钟即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:140000
+  },
+  {
+    id:"preset_141", name:"油条", emoji:"🥖",
+    photo:'', tags:["主食","家常"], category:"主食", calories:386,
+    ingredients:[{name:"油条",amount:"1 根（约100g）",unit:''}],
+    seasonings:[],
+    steps:["直接食用，或配豆浆/豆腐脑更佳。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:141000
+  },
+  {
+    id:"preset_142", name:"花卷", emoji:"🥐",
+    photo:'', tags:["主食","家常"], category:"主食", calories:217,
+    ingredients:[{name:"花卷",amount:"1 个（约100g）",unit:''}],
+    seasonings:[],
+    steps:["蒸锅上汽后蒸5-8分钟即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:142000
+  },
+  {
+    id:"preset_143", name:"小笼包", emoji:"🥟",
+    photo:'', tags:["主食","家常"], category:"主食", calories:230,
+    ingredients:[{name:"小笼包",amount:"6 个（约150g）",unit:''}],
+    seasonings:[{name:"醋",amount:"适量",unit:''},{name:"姜丝",amount:"少许",unit:''}],
+    steps:["蒸锅上汽后放入小笼包，蒸6-8分钟","趁热蘸醋和姜丝食用。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:143000
+  },
+  {
+    id:"preset_144", name:"馄饨（鲜肉）", emoji:"🥟",
+    photo:'', tags:["主食","家常"], category:"主食", calories:220,
+    ingredients:[{name:"鲜肉馄饨",amount:"12 个（约200g）",unit:''}],
+    seasonings:[{name:"紫菜",amount:"少许",unit:''},{name:"葱花",amount:"少许",unit:''},{name:"香油",amount:"几滴",unit:''}],
+    steps:["水沸后下馄饨，煮至浮起","碗中放紫菜葱花香油，冲入馄饨汤即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:144000
+  },
+  {
+    id:"preset_145", name:"煎饼果子（带薄脆）", emoji:"🥞",
+    photo:'', tags:["主食","家常"], category:"主食", calories:320,
+    ingredients:[{name:"面糊",amount:"1 份",unit:''},{name:"鸡蛋",amount:"1 个",unit:''},{name:"薄脆",amount:"1 片",unit:''},{name:"生菜",amount:"1 片",unit:''}],
+    seasonings:[{name:"甜面酱",amount:"适量",unit:''},{name:"辣椒酱",amount:"适量（可选）",unit:''}],
+    steps:["摊薄面糊，打上鸡蛋抹匀","翻面刷酱，放薄脆和生菜卷起即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:145000
+  },
+  {
+    id:"preset_146", name:"手抓饼（熟）", emoji:"🫓",
+    photo:'', tags:["主食","家常"], category:"主食", calories:340,
+    ingredients:[{name:"冷冻手抓饼",amount:"1 张（约120g）",unit:''}],
+    seasonings:[],
+    steps:["无需解冻，不粘锅不放油","中小火煎至两面金黄酥脆即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:146000
+  },
+  {
+    id:"preset_147", name:"八宝饭", emoji:"🍚",
+    photo:'', tags:["主食","家常"], category:"主食", calories:310,
+    ingredients:[{name:"八宝饭",amount:"1 份（约200g）",unit:''}],
+    seasonings:[],
+    steps:["蒸锅加热10-15分钟，或微波加热2分钟即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:147000
+  },
+  {
+    id:"preset_148", name:"烧麦", emoji:"🥟",
+    photo:'', tags:["主食","家常"], category:"主食", calories:235,
+    ingredients:[{name:"烧麦",amount:"4 个（约120g）",unit:''}],
+    seasonings:[{name:"醋",amount:"适量",unit:''}],
+    steps:["蒸锅上汽后放烧麦，蒸6-8分钟即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:148000
+  },
+  {
+    id:"preset_149", name:"肉夹馍", emoji:"🥙",
+    photo:'', tags:["主食","家常"], category:"主食", calories:260,
+    ingredients:[{name:"白吉馍",amount:"1 个",unit:''},{name:"卤肉",amount:"60g",unit:''}],
+    seasonings:[{name:"青椒",amount:"少许（可选）",unit:''}],
+    steps:["卤肉剁碎，白吉馍从中间切开","填入卤肉碎和青椒即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:149000
+  },
+  {
+    id:"preset_150", name:"炒饭（普通蛋炒饭）", emoji:"🍛",
+    photo:'', tags:["主食","家常"], category:"主食", calories:188,
+    ingredients:[{name:"米饭",amount:"150g",unit:''},{name:"鸡蛋",amount:"1 个",unit:''},{name:"葱花",amount:"少许",unit:''}],
+    seasonings:[{name:"盐",amount:"2g",unit:''},{name:"食用油",amount:"8ml",unit:''}],
+    steps:["鸡蛋打散炒熟盛出","锅中放油炒米饭，加入鸡蛋和葱花翻炒均匀","加盐调味即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:150000
+  },
+  {
+    id:"preset_151", name:"阳春面（熟带汤面）", emoji:"🍜",
+    photo:'', tags:["主食","家常"], category:"主食", calories:130,
+    ingredients:[{name:"细面条（熟）",amount:"150g",unit:''},{name:"面汤",amount:"300ml",unit:''}],
+    seasonings:[{name:"酱油",amount:"5ml",unit:''},{name:"葱花",amount:"少许",unit:''},{name:"香油",amount:"几滴",unit:''}],
+    steps:["碗中放酱油葱花香油，冲入热面汤","放入煮好的面条即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:151000
+  },
+  {
+    id:"preset_152", name:"豆沙包", emoji:"🥟",
+    photo:'', tags:["主食","家常"], category:"主食", calories:220,
+    ingredients:[{name:"豆沙包",amount:"1 个（约100g）",unit:''}],
+    seasonings:[],
+    steps:["蒸锅上汽后蒸5-8分钟即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:152000
+  },
+  {
+    id:"preset_153", name:"麻团", emoji:"🍡",
+    photo:'', tags:["主食","家常"], category:"主食", calories:345,
+    ingredients:[{name:"麻团",amount:"2 个（约100g）",unit:''}],
+    seasonings:[],
+    steps:["直接食用或微波加热15秒回软。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:153000
+  },
+  {
+    id:"preset_154", name:"锅贴（煎饺）", emoji:"🥟",
+    photo:'', tags:["主食","家常"], category:"主食", calories:260,
+    ingredients:[{name:"锅贴/煎饺",amount:"8 个（约150g）",unit:''}],
+    seasonings:[{name:"醋",amount:"适量",unit:''}],
+    steps:["平底锅放少许油，码入锅贴","中小火煎至底部金黄，加小半碗水盖盖焖3-5分钟","水干后揭开再煎1分钟至酥脆。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:154000
+  },
+  {
+    id:"preset_155", name:"小米粥", emoji:"🥣",
+    photo:'', tags:["主食","家常"], category:"主食", calories:46,
+    ingredients:[{name:"小米",amount:"30g",unit:''},{name:"水",amount:"500ml",unit:''}],
+    seasonings:[],
+    steps:["小米洗净，放入沸水中","中小火熬煮20-30分钟至粘稠即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:155000
+  },
+  {
+    id:"preset_156", name:"红薯（蒸）", emoji:"🍠",
+    photo:'', tags:["主食","减脂早餐"], category:"主食", calories:86,
+    ingredients:[{name:"红薯",amount:"1 个（约200g）",unit:''}],
+    seasonings:[],
+    steps:["红薯洗净不去皮","蒸锅中火蒸20-30分钟，筷子能轻松插入即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:156000
+  },
+  {
+    id:"preset_157", name:"紫薯（蒸）", emoji:"🍠",
+    photo:'', tags:["主食","减脂早餐"], category:"主食", calories:82,
+    ingredients:[{name:"紫薯",amount:"1 个（约200g）",unit:''}],
+    seasonings:[],
+    steps:["紫薯洗净不去皮","蒸锅中火蒸20-25分钟，筷子能轻松插入即可。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:157000
+  },
+  {
+    id:"preset_158", name:"面包（白切片）", emoji:"🍞",
+    photo:'', tags:["主食","减脂早餐"], category:"主食", calories:280,
+    ingredients:[{name:"白切片面包",amount:"2 片（约100g）",unit:''}],
+    seasonings:[],
+    steps:["开袋即食或烤至微焦更香。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:158000
+  },
+  {
+    id:"preset_159", name:"绿豆糕", emoji:"🍰",
+    photo:'', tags:["家常"], category:"家常", calories:350,
+    ingredients:[{name:"绿豆糕",amount:"2 块（约100g）",unit:''}],
+    seasonings:[],
+    steps:["开袋即食，配绿茶更佳。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:159000
+  },
+  {
+    id:"preset_160", name:"蛋黄酥", emoji:"🥮",
+    photo:'', tags:["家常"], category:"家常", calories:385,
+    ingredients:[{name:"蛋黄酥",amount:"1 个（约100g）",unit:''}],
+    seasonings:[],
+    steps:["开袋即食，配茶解腻。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:160000
+  },
+  {
+    id:"preset_161", name:"麻花", emoji:"🥨",
+    photo:'', tags:["家常"], category:"家常", calories:524,
+    ingredients:[{name:"麻花",amount:"1 根（约100g）",unit:''}],
+    seasonings:[],
+    steps:["直接食用，酥脆香甜。"],
+    cookTime:'', difficulty:'', isPreset:true, createdAt:161000
+  },
 ];
 
 const PANTRY_INGREDIENTS = {
@@ -2072,6 +2342,51 @@ const WorkSchedule = {
 
 /* ===== Holidays ===== */
 const Holidays = {
+  _info:{
+    '元旦':'公历新年第一天，全球通行的新年开端，放假1天，人们常在这一天制定新年计划。',
+    '情人节':'2月14日，西方情人节，情侣间互赠礼物表达爱意。',
+    '妇女节':'3月8日，国际劳动妇女节，庆祝女性在社会各领域的贡献。',
+    '劳动节':'5月1日，国际劳动节，致敬每一位劳动者的辛勤付出。',
+    '儿童节':'6月1日，国际儿童节，守护童心，陪伴成长。',
+    '七夕节':'农历七月初七，牛郎织女鹊桥相会，中国传统的情人节。',
+    '中秋节':'农历八月十五，阖家团圆的节日，赏月吃月饼。',
+    '国庆节':'10月1日，中华人民共和国成立纪念日，国庆大假。',
+    '春节':'农历正月初一，中国最重要的传统节日，贴春联放鞭炮吃年夜饭，阖家欢乐过大年。',
+    '元宵节':'农历正月十五，又称上元节，吃汤圆赏花灯，寓意团团圆圆。',
+    '端午节':'农历五月初五，纪念屈原，赛龙舟吃粽子，挂艾草驱邪祈福。',
+    '重阳节':'农历九月初九，敬老爱老的传统节日，登高望远。',
+    '立春':'二十四节气之首，春回大地万物复苏。',
+    '雨水':'降雨开始增多，春雨贵如油。',
+    '惊蛰':'春雷乍动，万物惊醒，春耕开始。',
+    '春分':'昼夜平分，春意正浓。',
+    '清明':'既是节气又是节日，祭祖扫墓，踏青赏春。',
+    '谷雨':'雨生百谷，春季最后一个节气。',
+    '立夏':'夏季伊始，万物繁茂。',
+    '小满':'麦类等夏熟作物籽粒开始饱满。',
+    '芒种':'有芒的麦子快收，有芒的稻子可种。',
+    '夏至':'白昼最长的一天，气温升高。',
+    '小暑':'暑气初起，天气开始炎热。',
+    '大暑':'一年中最热的时期。',
+    '立秋':'秋季的开始，凉风渐起。',
+    '处暑':'暑气消退，秋意渐浓。',
+    '白露':'天气转凉，露水凝结。',
+    '秋分':'昼夜平分，秋高气爽。',
+    '寒露':'露水更冷，即将结冰。',
+    '霜降':'天气渐冷，开始有霜。',
+    '立冬':'冬季开始，万物收藏。',
+    '小雪':'开始降雪但不大。',
+    '大雪':'降雪量增大，地面可能积雪。',
+    '冬至':'白昼最短的一天，吃饺子防冻耳。',
+    '小寒':'开始进入寒冷时节。',
+    '大寒':'一年中最冷的时候。',
+    '母亲节':'每年5月的第二个星期日，感恩母爱。',
+    '父亲节':'每年6月的第三个星期日，感恩父爱。',
+    '圣诞节':'12月25日，圣诞节，西方传统节日。',
+    '中元节':'农历七月十五，祭祀祖先的传统节日。'
+  },
+  _linkRecipe:{'春节':'饺子 年糕 年夜饭','元宵节':'汤圆','端午节':'粽子','中秋节':'月饼'},
+  _linkAnni:{'情人节':true,'七夕节':true},
+  _linkTodo:{'春节':true,'元宵节':true,'端午节':true,'中秋节':true,'国庆节':true,'元旦':true,'清明':true},
   _solar:[
     [1,1,'元旦'],[2,14,'情人节'],[3,8,'妇女节'],[3,12,'植树节'],
     [4,1,'愚人节'],[5,1,'劳动节'],[5,4,'青年节'],[6,1,'儿童节'],
@@ -2118,11 +2433,74 @@ const Holidays = {
     var c=document.getElementById('ovHolidayList'); if(!c) return;
     if(!list.length){
       var next=this.getNextHoliday();
-      if(next){var days=daysBetween(todayStr(),next.date);var dt=days===0?'今天':days===1?'明天':days+'天后';c.innerHTML='<div class="ov-holiday-item"><span class="ov-holiday-name">下个节日：'+next.name+'</span><span class="ov-holiday-date">'+dt+'</span></div>';}
+      if(next){var days=daysBetween(todayStr(),next.date);var dt=days===0?'今天':days===1?'明天':days+'天后';c.innerHTML='<span class="ov-holiday-tag" onclick="Holidays._onClick(event,\''+next.name+'\',\''+next.date+'\',false)" title="点击查看更多">📅 '+next.name+'<span class="holi-date">'+dt+'</span></span>';}
       else c.innerHTML='<div class="ov-holiday-none">本月无节日</div>';
       return;
     }
-    c.innerHTML=list.map(function(h){var d=new Date(h.date+'T00:00:00');var ds=(d.getMonth()+1)+'/'+d.getDate();var cls=h.isToday?'ov-holiday-today':'ov-holiday-name';return '<div class="ov-holiday-item"><span class="'+cls+'">'+(h.isToday?'🎉 ':'')+h.name+(h.isToday?'（今天）':'')+'</span><span class="ov-holiday-date">'+ds+'</span></div>';}).join('');
+    var self=this;
+    // Check for today's holiday toast
+    list.forEach(function(h){if(h.isToday){setTimeout(function(){toast('今天是'+h.name+'，祝你快乐！🎉');},800);}});
+    c.innerHTML=list.map(function(h){
+      var d=new Date(h.date+'T00:00:00');var ds=(d.getMonth()+1)+'/'+d.getDate();
+      var cls=['ov-holiday-tag'];
+      if(h.isToday) cls.push('today');
+      var rp=self._linkRecipe[h.name]; if(rp) cls.push('recipe-link');
+      if(self._linkAnni[h.name]) cls.push('anni-link');
+      if(self._linkTodo[h.name]) cls.push('todo-link');
+      var lbl=(h.isToday?'🎉 ':'')+h.name+(h.isToday?'（今天）':'');
+      return '<span class="'+cls.join(' ')+'" onclick="Holidays._onClick(event,\''+h.name+'\',\''+h.date+'\','+h.isToday+')" title="点击查看更多">'+lbl+'<span class="holi-date">'+ds+'</span></span>';
+    }).join('');
+  },
+  _onClick(e,name,date,isToday){
+    e.stopPropagation();
+    // If today's holiday, toast first
+    if(isToday) toast('今天是'+name+'，祝你快乐！🎉');
+    // Show detail modal
+    this._showDetail(name,date);
+  },
+  _showDetail(name,date){
+    var desc=this._info[name]||'暂无详细介绍';
+    el('hdTitle').textContent=name;
+    el('hdDate').textContent=date;
+    el('hdDesc').textContent=desc;
+    var actions=[];
+    var rp=this._linkRecipe[name];
+    if(rp){ actions.push({l:'🍳 找菜谱',c:'hd-btn primary',a:'Holidays._goRecipe(\''+name+'\')'}); }
+    if(this._linkAnni[name]){ actions.push({l:'💝 记一笔',c:'hd-btn',a:'Holidays._goAnniversary(\''+name+'\',\''+date+'\')'}); }
+    if(this._linkTodo[name]){ actions.push({l:'📋 准备待办',c:'hd-btn warn',a:'Holidays._createTodo(\''+name+'\',\''+date+'\')'}); }
+    el('hdActions').innerHTML=actions.map(function(a){return '<button class="'+a.c+'" onclick="'+a.a+'">'+a.l+'</button>';}).join('');
+    el('hdOverlay').classList.add('show');
+  },
+  closeDetail(){ el('hdOverlay').classList.remove('show'); },
+  _goRecipe(name){
+    var kw=this._linkRecipe[name]||name;
+    Nav.go('recipe');
+    var self=this;
+    setTimeout(function(){
+      var s=el('recipeSearch'); if(s) s.value=kw;
+      Recipe.renderLibrary(); self.closeDetail();
+    },100);
+  },
+  _goAnniversary(name,date){
+    Nav.go('anniversary');
+    var self=this;
+    setTimeout(function(){
+      Anniversary.showForm(null,{name:name,date:date,type:'节日',remindBefore:3});
+      self.closeDetail();
+    },100);
+  },
+  _createTodo(name,date){
+    var d=new Date(date+'T00:00:00'); d.setDate(d.getDate()-1);
+    var dd=fmtDateObj(d),today=todayStr();
+    if(dd<today){ toast('节日已过，无需准备'); this.closeDetail(); return; }
+    // Check for duplicate
+    var todos=DB.todos;
+    var dup=todos.records.find(function(t){return !t.done&&t.title==='准备'+name&&t.dueDate===dd;});
+    if(dup){ toast('已有相关待办：'+dup.title); this.closeDetail(); return; }
+    todos.records.push({id:uid(),title:'准备'+name+'节',list:'个人',priority:'medium',dueDate:dd,done:false,createdAt:Date.now()});
+    DB.todos=todos;
+    toast('已创建待办：准备'+name+'节（'+dd+'）');
+    this.closeDetail();
   }
 };
 function _nthWeekday(y,m,n,w){var d=new Date(y,m-1,1);var diff=(w-d.getDay()+7)%7;return 1+diff+(n-1)*7;}
@@ -2683,7 +3061,14 @@ const Calendar = {
 /* ===== Anniversary Module ===== */
 const Anniversary = {
   editingId: null,
-  showForm(id){ this.editingId=id||null; const rec=id?DB.anniversaries.records.find(r=>r.id===id):null; const types=['生日','纪念日','节日','自定义'],dv=rec?rec.date:''; const h=`<div class="modal-overlay" id="anniModal"><div class="modal" onclick="event.stopPropagation()"><div class="modal-header"><span class="modal-title">${id?'编辑':'新建'}纪念日</span><button type="button" onclick="Anniversary.closeForm()" class="modal-close-btn">✕</button></div><form onsubmit="Anniversary.saveForm(event)"><div class="form-group"><label class="form-label">名称</label><input type="text" class="form-input" name="name" value="${rec?rec.name:''}" required></div><div class="form-row"><div class="form-group"><label class="form-label">日期（月-日）</label><input type="date" class="form-input" name="date" value="${dv}" required></div><div class="form-group"><label class="form-label">类型</label><select class="form-select" name="type">${types.map(t=>`<option value="${t}"${rec&&rec.type===t?' selected':''}>${t}</option>`).join('')}</select></div></div><div class="form-group"><label class="form-label">提前几天提醒</label><input type="number" class="form-input" name="remindBefore" value="${rec?rec.remindBefore:0}" min="0" max="30"></div><button type="submit" class="submit-btn">${id?'更新':'创建'}纪念日</button></form></div></div>`; document.body.insertAdjacentHTML('beforeend',h); el('anniModal').addEventListener('click',function(e){ if(e.target===el('anniModal')) Anniversary.closeForm(); }); },
+  showForm(id,defs){
+    this.editingId=id||null; var rec=id?DB.anniversaries.records.find(function(r){return r.id===id;}):null;
+    var df=defs||{};
+    var types=['生日','纪念日','节日','自定义'];
+    var dv=rec?rec.date:(df.date||'');
+    var dn=rec?rec.name:(df.name||'');
+    var dt=rec?rec.type:(df.type||'节日');
+    var dr=rec?rec.remindBefore:(df.remindBefore||0); const h=`<div class="modal-overlay" id="anniModal"><div class="modal" onclick="event.stopPropagation()"><div class="modal-header"><span class="modal-title">${id?'编辑':'新建'}纪念日</span><button type="button" onclick="Anniversary.closeForm()" class="modal-close-btn">✕</button></div><form onsubmit="Anniversary.saveForm(event)"><div class="form-group"><label class="form-label">名称</label><input type="text" class="form-input" name="name" value="${rec?rec.name:''}" required></div><div class="form-row"><div class="form-group"><label class="form-label">日期（月-日）</label><input type="date" class="form-input" name="date" value="${dv}" required></div><div class="form-group"><label class="form-label">类型</label><select class="form-select" name="type">${types.map(t=>`<option value="${t}"${rec&&rec.type===t?' selected':''}>${t}</option>`).join('')}</select></div></div><div class="form-group"><label class="form-label">提前几天提醒</label><input type="number" class="form-input" name="remindBefore" value="${rec?rec.remindBefore:0}" min="0" max="30"></div><button type="submit" class="submit-btn">${id?'更新':'创建'}纪念日</button></form></div></div>`; document.body.insertAdjacentHTML('beforeend',h); el('anniModal').addEventListener('click',function(e){ if(e.target===el('anniModal')) Anniversary.closeForm(); }); },
   closeForm(){ const m=el('anniModal'); if(m) m.remove(); this.editingId=null; },
   saveForm(e){ e.preventDefault(); const fd=new FormData(e.target),d=DB.anniversaries; const rec={id:this.editingId||uid(),name:fd.get('name'),date:fd.get('date'),type:fd.get('type'),remindBefore:parseInt(fd.get('remindBefore'))||0,createdAt:Date.now()}; if(this.editingId){ const idx=d.records.findIndex(r=>r.id===this.editingId); if(idx>=0) d.records[idx]=rec; } else d.records.push(rec); DB.anniversaries=d; this.closeForm(); this.renderAll(); toast('纪念日已保存'); },
   deleteRecord(id){ if(!confirm('确定删除？')) return; const d=DB.anniversaries; d.records=d.records.filter(r=>r.id!==id); DB.anniversaries=d; this.renderAll(); toast('已删除'); },
@@ -2766,6 +3151,19 @@ const Recipe = {
       if(fixed>0){ DB.recipes = d; toast('已修复'+fixed+'道菜品分类'); }
       localStorage.setItem('wb_recipe_category_v1','1');
     }
+    // Migration: add new preset recipes (132-161, 30 Chinese staple foods)
+    if(!localStorage.getItem('wb_recipe_v3')){
+      const newIds=['preset_132','preset_133','preset_134','preset_135','preset_136','preset_137','preset_138','preset_139','preset_140','preset_141','preset_142','preset_143','preset_144','preset_145','preset_146','preset_147','preset_148','preset_149','preset_150','preset_151','preset_152','preset_153','preset_154','preset_155','preset_156','preset_157','preset_158','preset_159','preset_160','preset_161'];
+      let added=0;
+      newIds.forEach(function(id){
+        if(!d.records.find(function(r){return r.id===id;})){
+          var p=PRESET_RECIPES.find(function(r){return r.id===id;});
+          if(p){ d.records.push({...p}); added++; }
+        }
+      });
+      if(added>0){ DB.recipes=d; toast('已新增'+added+'道中式主食菜品'); }
+      localStorage.setItem('wb_recipe_v3','1');
+    }
   },
   renderAll(){
     this.renderTagFilter();
@@ -2785,6 +3183,10 @@ const Recipe = {
     el('recipeLibrary').style.display = tab==='library' ? '' : 'none';
     el('recipeFind').style.display = tab==='find' ? '' : 'none';
     if(tab==='find') this.renderFind();
+  },
+  searchByKeyword(kw){
+    var s=el('recipeSearch'); if(s) s.value=kw;
+    this.renderLibrary();
   },
   renderLibrary(){
     const d = DB.recipes;
