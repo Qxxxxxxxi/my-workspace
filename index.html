@@ -242,7 +242,10 @@ tbody tr:hover{background:var(--bg-primary)}
 
 /* ========== Overview Page ========== */
 .overview-greeting{font-size:26px;font-weight:700;margin-bottom:4px}
-.overview-date{font-size:14px;color:var(--text-secondary);margin-bottom:var(--sp-lg)}
+.overview-date{font-size:14px;color:var(--text-secondary);margin-bottom:4px}
+.overview-motto{font-size:14px;color:var(--accent-blue);margin-bottom:var(--sp-lg);padding:8px 12px;background:linear-gradient(135deg,#e3f2fd,#e8eaf6);border-radius:var(--radius-btn);border-left:3px solid var(--accent-blue);line-height:1.6}
+.overview-motto.evening{background:linear-gradient(135deg,#ede7f6,#f3e5f5);border-left-color:#7c4dff;color:#7c4dff}
+.overview-motto.late{background:linear-gradient(135deg,#1a237e,#283593);border-left-color:#5c6bc0;color:#c5cae9}
 .overview-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:var(--sp-md);margin-bottom:var(--sp-lg)}
 .backup-reminder{background:linear-gradient(135deg,#fff3cd,#ffe69c);border:1px solid #ffc107;border-radius:var(--radius-card);padding:12px var(--sp-md);margin-bottom:var(--sp-md);display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#856404;cursor:pointer;transition:opacity .2s;animation:backupPulse 2s ease-in-out infinite}
 .backup-reminder.hidden{display:none}
@@ -270,6 +273,31 @@ tbody tr:hover{background:var(--bg-primary)}
 .ov-holiday-name{color:var(--text-primary)}
 .ov-holiday-date{color:var(--text-tertiary);font-size:12px}
 .ov-holiday-none{font-size:13px;color:var(--text-tertiary);padding:8px 0;text-align:center}
+/* Work countdown */
+.ov-work{background:var(--bg-card);border-radius:var(--radius-card);padding:12px var(--sp-md);box-shadow:var(--shadow-card);cursor:pointer;transition:transform .15s;margin-bottom:var(--sp-lg);display:flex;justify-content:space-between;align-items:center}
+.ov-work:active{transform:scale(.98)}
+.ov-work-left{display:flex;align-items:center;gap:10px}
+.ov-work-icon{font-size:28px;line-height:1}
+.ov-work-text{font-size:15px;font-weight:600}
+.ov-work-sub{font-size:12px;color:var(--text-secondary)}
+.ov-work-right{font-size:13px;color:var(--text-tertiary);display:flex;align-items:center;gap:4px}
+.ov-work-off{color:var(--accent-green);font-weight:600}
+.ov-work-urgent{color:var(--accent-orange)}
+/* Work schedule settings popup */
+.ws-popup{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:flex-end;justify-content:center}
+.ws-popup-content{background:var(--bg-card);border-radius:16px 16px 0 0;width:100%;max-width:400px;padding:var(--sp-lg);padding-bottom:calc(var(--sp-lg)+env(safe-area-inset-bottom,0))}
+.ws-popup-title{font-size:18px;font-weight:700;margin-bottom:var(--sp-md);display:flex;justify-content:space-between;align-items:center}
+.ws-row{display:flex;gap:var(--sp-md);margin-bottom:var(--sp-md)}
+.ws-row label{font-size:13px;color:var(--text-secondary);display:block;margin-bottom:4px}
+.ws-row input,.ws-row select{flex:1}
+.ws-weekend-options{display:flex;gap:8px;margin-bottom:var(--sp-md)}
+.ws-weekend-btn{flex:1;padding:8px 4px;border:1.5px solid var(--border-color);border-radius:var(--radius-btn);background:var(--bg-primary);font-size:13px;cursor:pointer;text-align:center;transition:all .15s}
+.ws-weekend-btn.active{border-color:var(--accent-blue);background:var(--accent-blue);color:#fff}
+.ws-weekend-label{font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:block}
+@media(max-width:600px){
+  .ov-info-bar{flex-direction:column;gap:var(--sp-sm)}
+  .ov-work{flex-direction:column;align-items:flex-start;gap:2px}
+}
 /* Hourly weather modal */
 .wx-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center}
 .wx-overlay.show{display:flex}
@@ -530,6 +558,7 @@ tbody tr:hover{background:var(--bg-primary)}
     <section class="page active" id="page-overview">
       <div class="overview-greeting" id="ovGreeting"></div>
       <div class="overview-date" id="ovDate"></div>
+      <div class="overview-motto" id="ovMotto"></div>
       <div class="ov-info-bar" id="ovInfoBar">
         <div class="ov-weather" id="ovWeather" onclick="Weather.handleClick()">
           <div class="ov-weather-row">
@@ -545,6 +574,16 @@ tbody tr:hover{background:var(--bg-primary)}
           <div class="ov-holiday-title">📅 本月节日</div>
           <div id="ovHolidayList"><div class="ov-holiday-none">加载中…</div></div>
         </div>
+      </div>
+      <div class="ov-work" id="ovWork" onclick="WorkSchedule.showSettings()">
+        <div class="ov-work-left">
+          <div class="ov-work-icon">⏰</div>
+          <div>
+            <div class="ov-work-text" id="wsStatus">设置上班时间</div>
+            <div class="ov-work-sub" id="wsCountdown"></div>
+          </div>
+        </div>
+        <div class="ov-work-right" id="wsWeekend">点击设置 ⚙️</div>
       </div>
       <div class="backup-reminder hidden" id="backupReminder" onclick="DataIO.exportAll()"><span>📥 <span id="backupReminderMsg"></span></span><span class="backup-reminder-dismiss" onclick="event.stopPropagation();DataIO._dismissBackup()">✕</span></div>
       <div class="overview-cards" id="ovCards"></div>
@@ -1917,6 +1956,120 @@ const Nav = {
 function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('show'); }
 function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
 
+/* ===== Work Schedule ===== */
+const WorkSchedule = {
+  _defaults: { start:'09:00', end:'18:00', weekend:'double' },
+  _get(){ try{ return JSON.parse(localStorage.getItem('wb_work_schedule')) || this._defaults; }catch(e){ return this._defaults; } },
+  _set(s){ localStorage.setItem('wb_work_schedule', JSON.stringify(s)); },
+  showSettings(){
+    const s = this._get();
+    const ov = document.createElement('div');
+    ov.className = 'ws-popup';
+    ov.id = 'wsPopup';
+    const wdOpts = [
+      {v:'double',l:'双休（周六日）'},
+      {v:'single',l:'单休（仅周日）'},
+      {v:'none',l:'全周无休'}
+    ];
+    ov.innerHTML = `<div class="ws-popup-content" onclick="event.stopPropagation()">
+      <div class="ws-popup-title"><span>⚙️ 上班时间设置</span><button onclick="WorkSchedule.closeSettings()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">✕</button></div>
+      <div class="ws-row"><div style="flex:1"><label>上班时间</label><input type="time" class="form-input" id="wsStart" value="${s.start}"></div><div style="flex:1"><label>下班时间</label><input type="time" class="form-input" id="wsEnd" value="${s.end}"></div></div>
+      <label class="ws-weekend-label">休息日</label>
+      <div class="ws-weekend-options">${wdOpts.map(w=>`<div class="ws-weekend-btn${s.weekend===w.v?' active':''}" data-v="${w.v}" onclick="WorkSchedule._pickWeekend(this)">${w.l}</div>`).join('')}</div>
+      <button type="button" class="submit-btn" style="width:100%;margin-top:var(--sp-md)" onclick="WorkSchedule.saveSettings()">💾 保存设置</button>
+    </div>`;
+    ov.onclick = (e)=>{ if(e.target===ov) this.closeSettings(); };
+    document.body.appendChild(ov);
+  },
+  closeSettings(){ const o=document.getElementById('wsPopup'); if(o) o.remove(); },
+  _pickWeekend(el){
+    el.parentElement.querySelectorAll('.ws-weekend-btn').forEach(b=>b.classList.remove('active'));
+    el.classList.add('active');
+  },
+  saveSettings(){
+    const s = this._get();
+    s.start = document.getElementById('wsStart').value || '09:00';
+    s.end = document.getElementById('wsEnd').value || '18:00';
+    const active = document.querySelector('.ws-weekend-btn.active');
+    s.weekend = active ? active.dataset.v : 'double';
+    this._set(s);
+    this.closeSettings();
+    this.render();
+    toast('上班时间已保存');
+  },
+  isWorkday(now){
+    const s = this._get();
+    const dow = now.getDay(); // 0=Sun
+    if(s.weekend==='double' && (dow===0||dow===6)) return false;
+    if(s.weekend==='single' && dow===0) return false;
+    // 'none' = always workday
+    return true;
+  },
+  _timeToMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; },
+  render(){
+    const now = new Date();
+    const s = this._get();
+    const st = el('wsStatus'), cd = el('wsCountdown'), we = el('wsWeekend');
+    if(!st || !cd || !we) return;
+    const curMin = now.getHours()*60 + now.getMinutes();
+    const startMin = this._timeToMin(s.start);
+    const endMin = this._timeToMin(s.end);
+    const isWork = this.isWorkday(now);
+
+    // Work status
+    if(!isWork){
+      st.textContent = '今天休息 🎉';
+      st.className = 'ov-work-text ov-work-off';
+      cd.textContent = '';
+    } else if(curMin < startMin){
+      const diff = startMin - curMin;
+      const h = Math.floor(diff/60), m = diff%60;
+      st.textContent = '距上班还有';
+      cd.textContent = `${h>0?h+'小时':''}${m}分钟`;
+      cd.className = '';
+    } else if(curMin >= endMin){
+      st.textContent = '已下班 🎉';
+      st.className = 'ov-work-text ov-work-off';
+      cd.textContent = '辛苦一天，好好休息';
+    } else {
+      const diff = endMin - curMin;
+      const h = Math.floor(diff/60), m = diff%60;
+      st.textContent = '距下班还有';
+      const urg = h===0 && m<=30;
+      st.className = 'ov-work-text' + (urg?' ov-work-urgent':'');
+      cd.textContent = `${h>0?h+'小时':''}${m}分钟`;
+    }
+
+    // Weekend countdown
+    const dow = now.getDay(); // 0=Sun, 6=Sat
+    if(s.weekend==='none'){
+      we.textContent = '全周工作 ⚡';
+    } else if(s.weekend==='double'){
+      if(dow===0){ we.textContent = '今天是周日 🌿'; we.className = 'ov-work-right ov-work-off'; }
+      else if(dow===6){ we.textContent = '愉快周末 🌿'; we.className = 'ov-work-right ov-work-off'; }
+      else {
+        const daysLeft = 6 - dow;
+        we.textContent = `还有 ${daysLeft} 天到周末`;
+        we.className = 'ov-work-right';
+      }
+    } else { // single weekend
+      if(dow===0){ we.textContent = '愉快周日 🌿'; we.className = 'ov-work-right ov-work-off'; }
+      else {
+        const daysLeft = dow===6 ? 1 : (7 - dow);
+        we.textContent = `还有 ${daysLeft} 天到周日`;
+        we.className = 'ov-work-right';
+      }
+    }
+  },
+  init(){
+    const s = this._get();
+    if(!localStorage.getItem('wb_work_schedule')) this._set(this._defaults);
+    this.render();
+    // Update every 30s
+    if(!this._timer) this._timer = setInterval(()=>this.render(), 30000);
+  }
+};
+
 /* ===== Holidays ===== */
 const Holidays = {
   _solar:[
@@ -2071,6 +2224,7 @@ const Weather={
       if(hasRain){he.innerHTML='\u26a0\ufe0f '+rainT+' 可能下雨';he.className='ov-weather-rain-alert';}
       else{he.textContent='点击查看逐时预报';he.className='ov-weather-hint';}
     }
+    Overview._renderMotto();
   },
   _renderLoading(){el('wxIcon').textContent='\u23f3';el('wxTemp').textContent='--';el('wxDesc').textContent='获取中…';el('wxCity').textContent='';el('wxHint').textContent='点击查看逐时预报';el('wxHint').className='ov-weather-hint';},
   _renderNoCity(){el('wxIcon').textContent='\ud83d\udccd';el('wxTemp').textContent='--';el('wxDesc').textContent='未设置城市';el('wxCity').textContent='点击设置城市';el('wxHint').textContent='';el('wxHint').className='ov-weather-hint';},
@@ -2083,6 +2237,7 @@ const Overview = {
     const now = new Date(), h = now.getHours();
     el('ovGreeting').textContent = h<6?'夜深了 🌙':h<12?'早上好 ☀️':h<18?'下午好 🌤️':'晚上好 🌙';
     el('ovDate').textContent = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日 星期'+['日','一','二','三','四','五','六'][now.getDay()];
+    this._renderMotto();
     const fat = DB.fatLoss, exp = DB.expense, todos = DB.todos, evts = DB.events, annis = DB.anniversaries, memos = DB.memos, period = DB.period, recipes = DB.recipes;
     const today = todayStr();
     const cw = fat.records.length ? fat.records[fat.records.length-1].weight : (fat.basicInfo.initialWeight||'—');
@@ -2103,9 +2258,10 @@ const Overview = {
       {icon:'🍳',label:'食谱',value:recipes.records.length+' 道菜',page:'recipe'}
     ];
     el('ovCards').innerHTML = cards.map(c=>`<div class="ov-card" onclick="Nav.go('${c.page}')"><div class="ov-icon">${c.icon}</div><div class="ov-label">${c.label}</div><div class="ov-value">${c.value}</div></div>`).join('');
-    // Weather + Holidays
+    // Weather + Holidays + Work schedule
     Weather.init();
     Holidays.render(now.getFullYear(), now.getMonth()+1);
+    WorkSchedule.init();
     // Backup reminder
     const age=DataIO._checkBackupAge(), dismissed=localStorage.getItem('wb_backup_dismissed');
     const rem=el('backupReminder'), msg=el('backupReminderMsg');
@@ -2113,6 +2269,105 @@ const Overview = {
       rem.classList.remove('hidden');
       msg.textContent=age===-1?'尚未备份过数据，点此导出备份':`距上次备份已 ${age} 天，点此导出备份`;
     }else{ rem.classList.add('hidden'); }
+  },
+  _renderMotto(){
+    var m=el('ovMotto'); if(!m) return;
+    var now=new Date(), h=now.getHours(), dow=now.getDay();
+    var ws=WorkSchedule._get(), fat=DB.fatLoss, todos=DB.todos;
+    var pendingTodos=todos.records.filter(function(t){return !t.done;}).length;
+    var loggedWeight=false;
+    if(fat.records.length){ var lr=fat.records[fat.records.length-1]; loggedWeight=(lr.date===todayStr()); }
+    var targetWeight=fat.basicInfo.targetWeight||0;
+    var latestWeight=fat.records.length?fat.records[fat.records.length-1].weight:0;
+    var losing=targetWeight&&latestWeight?latestWeight<=targetWeight:null;
+
+    // Pool of motivational phrases by context
+    var morning=[
+      '新的一天，新的开始 💪','早起的鸟儿有虫吃 🐦','今天也要元气满满 ✨',
+      '一日之计在于晨 ☀️','今天的努力是明天的底气 🚀','先搞定三件最重要的事 📋',
+      '咖啡续命，目标在心 ☕','每一个清晨都是重启的机会 🌱','动起来，别让床绑架你 🏃',
+      '今天比昨天更靠近目标一点 🎯','早上的你最美，因为奋斗的光芒 🌟'
+    ];
+    var workday=[
+      '专注一小时胜过摸鱼一整天 🎯','事情一件一件做，饭一口一口吃 🍚',
+      '累了就站起来走走，效率更高 🚶','你的努力，未来都看得见 👀',
+      '别让手机偷走你的时间 📱🚫','做好眼前事，不负好时光 ⏳',
+      '今天流下的汗，明天笑出声 😄','机会永远留给有准备的人 🏆',
+      '把大目标拆成小步骤，一步一步来 🪜','工作是为了更好地生活，别忘了生活本身 🌸'
+    ];
+    var afternoon=[
+      '下午是弯道超车的好时机 🏎️','坚持住，下班就在眼前 ⏰',
+      '再拼一把，今天不留遗憾 🔥','困了吗？站起来喝杯水继续 🥤',
+      '下午的效率决定今天的质量 📊','别让困意打败你的野心 💪',
+      '每坚持一小时，离目标就近一步 🎯','没有什么比充实的下午更让人满足 😌',
+      '冲刺阶段，给自己加个油 ⛽','累了就休息，休息好了再出发 🔄'
+    ];
+    var evening=[
+      '辛苦一天了，记得犒劳自己 🍲','今天的努力会在未来开花 🌸',
+      '放下工作，享受属于自己的时间 🌙','晚上少刷手机，多读本书 📖',
+      '今天已经很棒了，明天继续 💤','运动一下，让身体和大脑都放松 🧘',
+      '复盘今天，计划明天，然后好好休息 🛌','别忘了喝水，别忘了爱自己 ❤️',
+      '用一顿好饭结束充实的一天 🥗','晚安之前，深呼吸三次 🌬️'
+    ];
+    var late=[
+      '夜深了，该休息了 🌙','熬夜是对明天的透支 ⚠️',
+      '身体是革命的本钱，早点睡吧 🛌','明天太阳升起时，你也要满血复活 🌅',
+      '好的睡眠是最好的充电 🔋','晚安，世界和你 🌌'
+    ];
+    var fatloss=[
+      '管住嘴迈开腿，夏天不远了 👙','每一口自律都是对未来的投资 💎',
+      '今天少吃一口，明天多瘦一点 ⚖️','汗水是脂肪的眼泪 💦',
+      '坚持就是胜利，平台期总会过去 📉','吃得健康不等于吃得痛苦 🥦',
+      '对比一个月前的自己，你已经进步了 📸','运动和美食可以兼得，选对方法就行 🥗',
+      '别让昨天的放纵变成今天的悔恨 🔄','瘦不是目的，健康才是终极目标 🎯'
+    ];
+    var weekend=[
+      '周末是用来充电的，不是用来躺平的 🔋','睡个懒觉，然后去做想做的事 🌿',
+      '周末快乐！出去走走看看吧 🚶‍♂️','别忘了周末也稍微动一动 🏃',
+      '给自己做一顿好饭，犒劳一周的努力 🍳','周末是生活的暂停键，好好享受 ⏸️',
+      '一本书，一杯茶，一个悠闲的周末 📖','周末是生活的诗，慢慢读 🌻'
+    ];
+
+    // Select context-aware phrase
+    var pool=[];
+    var cls='';
+    if(dow===0||dow===6){ pool=pool.concat(weekend); }
+    if(h<6){ pool=pool.concat(late); cls='late'; }
+    else if(h<12){ pool=pool.concat(morning); }
+    else if(h<18){ pool=pool.concat(workday).concat(afternoon); }
+    else { pool=pool.concat(evening); cls='evening'; }
+
+    // Mix in contextual phrases
+    if(!loggedWeight&&latestWeight>0){ pool.push('今天还没记录体重哦，上称看看 ⚖️'); }
+    if(pendingTodos>5){ pool.push('待办事项有点多，今天先挑3个最重要的搞定 📋'); }
+    else if(pendingTodos>0){ pool.push('还剩'+pendingTodos+'项待办，今天能清零吗？✅'); }
+    else if(pendingTodos===0&&todos.records.length>0){ pool.push('待办全部清空！成就感满满 🎉'); }
+    if(targetWeight&&latestWeight&&!losing){ pool.push('离目标还差'+(latestWeight-targetWeight).toFixed(1)+'斤，继续加油 🔥'); }
+    if(losing===true){ pool.push('已经达到或低于目标体重了，保持住 🎉'); }
+    if(fat.records.length===0){ pool.push('开始记录体重吧，数据是最诚实的伙伴 📊'); }
+
+    // Weather-aware phrases
+    var wxDescEl=document.getElementById('wxDesc'), wxTempEl=document.getElementById('wxTemp');
+    if(wxDescEl&&wxTempEl){
+      var wd=wxDescEl.textContent, wt=wxTempEl.textContent;
+      if(wd&&wd!=='获取中…'&&wd!=='未设置城市'&&wd!=='获取失败'){
+        if(wd.indexOf('雨')>=0){ pool.push('今天有雨，记得带伞 ☔'); }
+        else if(wd.indexOf('雪')>=0){ pool.push('下雪天注意保暖，少出门 🧣'); }
+        else if(wd.indexOf('晴')>=0){ pool.push('天气这么好，出去走走吧 ☀️'); }
+        else if(wd.indexOf('阴')>=0||wd.indexOf('云')>=0){ pool.push('阴天也要保持好心情 🌥️'); }
+        if(wt&&parseInt(wt)>35){ pool.push('天太热了，多喝水少出门 🥵'); }
+        else if(wt&&parseInt(wt)<5){ pool.push('天冷加衣，别感冒了 🧥'); }
+      }
+    }
+
+    // Ensure we always have something
+    if(pool.length===0) pool=morning;
+
+    // Pick based on date seed so it changes daily but not every refresh
+    var seed=parseInt(todayStr().replace(/-/g,''))||1;
+    var idx=seed%pool.length;
+    m.textContent=pool[idx];
+    m.className='overview-motto '+(cls||'');
   },
   _nextAnni(recs){
     if(!recs.length) return null; const now = new Date(), today = todayStr(); let closest=null,cd=Infinity;
@@ -2466,6 +2721,7 @@ const Recipe = {
   currentTab: 'library',
   editingId: null,
   tempPhoto: '',
+  photoDeleted: false,
   init(){
     const d = DB.recipes;
     if(!d.records.length && !localStorage.getItem('wb_recipe_inited')){
@@ -2584,6 +2840,7 @@ const Recipe = {
   showForm(id){
     this.editingId = id || null;
     this.tempPhoto = '';
+    this.photoDeleted = false;
     const r = id ? DB.recipes.records.find(x=>x.id===id) : null;
     const d = DB.recipes;
     const overlay = document.createElement('div');
@@ -2603,8 +2860,11 @@ const Recipe = {
           </div>
           <div class="form-group"><label class="form-label">照片</label>
             <input type="file" accept="image/*" id="recipePhotoInput" style="display:none" onchange="Recipe.handlePhoto(event)">
-            <button type="button" class="photo-upload-btn" onclick="document.getElementById('recipePhotoInput').click()">📷 ${r&&r.photo?'更换照片':'上传照片'}</button>
-            <div id="photoPreview" style="margin-top:8px">${r&&r.photo?`<img src="${r.photo}" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px">`:''}</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button type="button" class="photo-upload-btn" id="photoUploadBtn" onclick="document.getElementById('recipePhotoInput').click()">📷 ${r&&r.photo?'更换照片':'上传照片'}</button>
+              ${r&&r.photo?`<button type="button" class="btn-sm danger" onclick="Recipe.removePhoto()">🗑 删除照片</button>`:''}
+            </div>
+            <div id="photoPreview" style="margin-top:8px">${r&&r.photo?`<div style="position:relative;display:inline-block;width:100%"><img src="${r.photo}" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px"></div>`:''}</div>
           </div>
           <div class="form-group"><label class="form-label">标签（多选）</label>
             <div style="display:flex;flex-wrap:wrap;gap:6px" id="tagPicker">
@@ -2646,7 +2906,7 @@ const Recipe = {
     c.appendChild(row);
   },
   addStepRow(){ this.addRow('stepRows','step'); },
-  closeForm(){ const o = el('recipeFormOverlay'); if(o) o.remove(); this.editingId = null; this.tempPhoto = ''; },
+  closeForm(){ const o = el('recipeFormOverlay'); if(o) o.remove(); this.editingId = null; this.tempPhoto = ''; this.photoDeleted = false; },
   async handlePhoto(e){
     const file = e.target.files[0]; if(!file) return;
     try{
@@ -2655,6 +2915,17 @@ const Recipe = {
       el('photoPreview').innerHTML = `<img src="${compressed}" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px">`;
       toast('照片已压缩');
     }catch(err){ toast('照片处理失败'); }
+  },
+  removePhoto(){
+    this.photoDeleted = true;
+    this.tempPhoto = '';
+    el('photoPreview').innerHTML = '';
+    const btn = el('photoUploadBtn');
+    if(btn) btn.textContent = '📷 上传照片';
+    // Remove the delete button if present
+    const delBtn = btn && btn.parentElement.querySelector('.btn-sm.danger');
+    if(delBtn) delBtn.remove();
+    toast('照片已删除');
   },
   compressPhoto(file, maxW, quality){
     return new Promise((resolve,reject)=>{
@@ -2704,7 +2975,7 @@ const Recipe = {
     const rec = {
       id: this.editingId || uid(),
       name: fd.get('name').trim(),
-      photo: this.tempPhoto || oldRec.photo || '',
+      photo: this.photoDeleted ? '' : (this.tempPhoto || oldRec.photo || ''),
       emoji: fd.get('emoji') || oldRec.emoji || '',
       category: tags[0] || '',
       tags,
