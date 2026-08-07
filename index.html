@@ -2510,10 +2510,11 @@ const Weather={
   _hourly:null,
   _key:'d6427bc1c393402fad06db3ca0a1a2e5',
   _host:'m77p44t5jm.re.qweatherapi.com',
+  _cacheVer:2,
   getSettings(){return DB.get('wb_weather_settings',{});},
   saveSettings(s){DB.set('wb_weather_settings',s);},
-  getCache(){var r=localStorage.getItem('wb_weather');if(!r)return null;try{var d=JSON.parse(r);if(d.date!==todayStr())return null;if(!d.current||!d.current.condition)return null;return d;}catch(e){return null;}},
-  setCache(cur,hourly,city){localStorage.setItem('wb_weather',JSON.stringify({date:todayStr(),current:cur,hourly:hourly,city:city}));},
+  getCache(){var r=localStorage.getItem('wb_weather');if(!r)return null;try{var d=JSON.parse(r);if(d._ver!==this._cacheVer)return null;if(d.date!==todayStr())return null;if(!d.current||!d.current.condition)return null;if(!d.hourly||!d.hourly.length||!d.hourly[0].forecastTime)return null;return d;}catch(e){return null;}},
+  setCache(cur,hourly,city){localStorage.setItem('wb_weather',JSON.stringify({_ver:this._cacheVer,date:todayStr(),current:cur,hourly:hourly,city:city}));},
   async init(){
     var cached=this.getCache();
     if(cached){this._hourly=cached.hourly;this._render(cached.current,cached.city);this._fetch();return;}
@@ -2554,33 +2555,42 @@ const Weather={
     this._renderLoading(); this._fetchWeather(r.lat,r.lon,r.name);
   },
   handleClick(){
-    if(this._hourly&&this._hourly.length){this.showHourly();return;}
+    if(this._hourly&&this._hourly.length&&this._hourly[0].forecastTime){this.showHourly();return;}
     var s=this.getSettings();
-    if(!s.lat){var city=prompt('请输入城市名（如：上海、北京）：');if(city)this.setCity(city);}
-    else{this._renderLoading();this._fetch();}
+    if(s.lat&&s.lon){
+      this._renderLoading();
+      var self=this;
+      this._fetchWeather(s.lat,s.lon,s.city||'当前位置').then(function(){
+        if(self._hourly&&self._hourly.length) self.showHourly();
+        else toast('天气数据加载失败，请稍后重试');
+      });
+    }else{
+      var city=prompt('请输入城市名（如：上海、北京）：');if(city)this.setCity(city);
+    }
   },
   showHourly(){
-    if(!this._hourly||!this._hourly.length)return;
+    if(!this._hourly||!this._hourly.length||!this._hourly[0].forecastTime){toast('暂无逐时预报数据');return;}
+    try{
     var s=this.getSettings(),city=s.city||'当前位置';
     var now=new Date(),curH=now.getHours();
     var hs=this._hourly;
-    var si=0;for(var i=0;i<hs.length;i++){if(new Date(hs[i].forecastTime).getHours()===curH){si=i;break;}}
+    var si=0;for(var i=0;i<hs.length;i++){var fh=new Date(hs[i].forecastTime).getHours();if(fh===curH){si=i;break;}}
     var html='',rainAlert=null;
     for(var i=si;i<hs.length;i++){
       var h=new Date(hs[i].forecastTime),hh=h.getHours();
       var wm=this._qwCondition(hs[i].condition.code);
       var prep=hs[i].precipitation;
-      var isRain=prep&&prep.type!=='none'&&(prep.probability>0.5||prep.amount.value>0.1);
+      var isRain=prep&&prep.type!=='none'&&(prep.probability>0.5||(prep.amount&&prep.amount.value>0.1));
       var isNow=(i===si);
       var tl=isNow?'现在':(hh<10?'0'+hh:hh)+':00';
       var ri='';
       if(prep&&prep.type!=='none'){
-        if(prep.amount.value>0)ri='<div class="wx-hour-rain">'+prep.amount.value.toFixed(1)+'mm</div>';
+        if(prep.amount&&prep.amount.value>0)ri='<div class="wx-hour-rain">'+prep.amount.value.toFixed(1)+'mm</div>';
         else if(prep.probability>0.3)ri='<div class="wx-hour-rain">'+Math.round(prep.probability*100)+'%</div>';
       }
       var cls=isRain?'wx-hour-card rain':'wx-hour-card';if(isNow)cls+=' now';
       html+='<div class="'+cls+'"><div class="wx-hour-time">'+tl+'</div><div class="wx-hour-icon">'+wm[0]+'</div><div class="wx-hour-temp">'+Math.round(hs[i].temperature.value)+'\u00b0</div>'+ri+'</div>';
-      if(isRain&&!rainAlert&&(i-si)<=6){var at=(hh<10?'0'+hh:hh)+':00';rainAlert='\u26a0\ufe0f '+at+' 可能下雨'+(prep.amount.value>0?'（'+prep.amount.value.toFixed(1)+'mm）':'（概率'+Math.round(prep.probability*100)+'%）');}
+      if(isRain&&!rainAlert&&(i-si)<=6){var at=(hh<10?'0'+hh:hh)+':00';rainAlert='\u26a0\ufe0f '+at+' 可能下雨'+(prep.amount&&prep.amount.value>0?'（'+prep.amount.value.toFixed(1)+'mm）':'（概率'+Math.round(prep.probability*100)+'%）');}
     }
     var cur=hs[si];
     var wm=this._qwCondition(cur.condition.code);
@@ -2589,6 +2599,7 @@ const Weather={
     var ae=el('wxAlert');
     if(rainAlert){ae.textContent=rainAlert;ae.classList.add('show');}else ae.classList.remove('show');
     el('wxOverlay').classList.add('show');
+    }catch(e){toast('逐时预报加载出错，请刷新重试');}
   },
   closeHourly(){el('wxOverlay').classList.remove('show');},
   _qwCondition(c){
