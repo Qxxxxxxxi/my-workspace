@@ -2510,7 +2510,7 @@ const Weather={
   _hourly:null,
   _key:'d6427bc1c393402fad06db3ca0a1a2e5',
   _host:'m77p44t5jm.re.qweatherapi.com',
-  _cacheVer:2,
+  _cacheVer:3,
   getSettings(){return DB.get('wb_weather_settings',{});},
   saveSettings(s){DB.set('wb_weather_settings',s);},
   getCache(){var r=localStorage.getItem('wb_weather');if(!r)return null;try{var d=JSON.parse(r);if(d._ver!==this._cacheVer)return null;if(d.date!==todayStr())return null;if(!d.current||!d.current.condition)return null;if(!d.hourly||!d.hourly.length||!d.hourly[0].forecastTime)return null;return d;}catch(e){return null;}},
@@ -2534,6 +2534,7 @@ const Weather={
       var res=await Promise.all([fetch(uCur),fetch(uHour)]);
       if(!res[0].ok||!res[1].ok)throw new Error('HTTP error');
       var cur=await res[0].json(),hour=await res[1].json();
+      console.log('[Weather] fetch成功, cur.condition:',cur.condition,' hour.hours长度:',hour.hours?hour.hours.length:'null');
       this._hourly=hour.hours; this.setCache(cur,hour.hours,city); this._render(cur,city);
     }catch(e){
       var cached=this.getCache();
@@ -2555,6 +2556,7 @@ const Weather={
     this._renderLoading(); this._fetchWeather(r.lat,r.lon,r.name);
   },
   handleClick(){
+    console.log('[Weather] handleClick, _hourly:',this._hourly?this._hourly.length:'null');
     if(this._hourly&&this._hourly.length&&this._hourly[0].forecastTime){this.showHourly();return;}
     var s=this.getSettings();
     if(s.lat&&s.lon){
@@ -2574,7 +2576,9 @@ const Weather={
     var s=this.getSettings(),city=s.city||'当前位置';
     var now=new Date(),curH=now.getHours();
     var hs=this._hourly;
+    console.log('[Weather] showHourly, 总数:',hs.length,' 当前小时:',curH,' 首条forecastTime:',hs[0].forecastTime);
     var si=0;for(var i=0;i<hs.length;i++){var fh=new Date(hs[i].forecastTime).getHours();if(fh===curH){si=i;break;}}
+    console.log('[Weather] showHourly, 起始索引si:',si,' 对应小时:',new Date(hs[si].forecastTime).getHours());
     var html='',rainAlert=null;
     for(var i=si;i<hs.length;i++){
       var h=new Date(hs[i].forecastTime),hh=h.getHours();
