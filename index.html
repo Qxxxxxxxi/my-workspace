@@ -2574,15 +2574,15 @@ const Weather={
     var s=this.getSettings(),city=s.city||'当前位置';
     var now=new Date(),curH=now.getHours();
     var hs=this._hourly;
-    var si=0;for(var i=0;i<hs.length;i++){var fh=new Date(hs[i].forecastTime).getHours();if(fh===curH){si=i;break;}}
-    if(si>=hs.length-3)si=0;
+    var si=0;for(var i=0;i<hs.length;i++){var d=new Date(hs[i].forecastTime);if(d.getHours()===curH&&d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&d.getDate()===now.getDate()){si=i;break;}}
     var html='',rainAlert=null;
     for(var i=si;i<hs.length;i++){
       var h=new Date(hs[i].forecastTime),hh=h.getHours();
+      var isToday=(h.getFullYear()===now.getFullYear()&&h.getMonth()===now.getMonth()&&h.getDate()===now.getDate());
       var wm=this._qwCondition(hs[i].condition.code);
       var prep=hs[i].precipitation;
       var isRain=prep&&prep.type!=='none'&&(prep.probability>0.5||(prep.amount&&prep.amount.value>0.1));
-      var isNow=(hh===curH);
+      var isNow=(hh===curH&&isToday);
       var tl=isNow?'现在':(hh<10?'0'+hh:hh)+':00';
       var ri='';
       if(prep&&prep.type!=='none'){
