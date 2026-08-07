@@ -2515,9 +2515,10 @@ const Weather={
   saveSettings(s){DB.set('wb_weather_settings',s);},
   getCache(){var r=localStorage.getItem('wb_weather');if(!r)return null;try{var d=JSON.parse(r);if(d._ver!==this._cacheVer)return null;if(d.date!==todayStr())return null;if(!d.current||!d.current.condition)return null;if(!d.hourly||!d.hourly.length||!d.hourly[0].forecastTime)return null;return d;}catch(e){return null;}},
   setCache(cur,hourly,city){localStorage.setItem('wb_weather',JSON.stringify({_ver:this._cacheVer,date:todayStr(),current:cur,hourly:hourly,city:city}));},
+  _buildHourly(cur,hours){var nowItem={forecastTime:new Date().toISOString(),condition:cur.condition,temperature:cur.temperature,precipitation:cur.precipitation||{type:'none',probability:0,amount:{value:0}}};return [nowItem].concat(hours||[]);},
   async init(){
     var cached=this.getCache();
-    if(cached){this._hourly=cached.hourly;this._render(cached.current,cached.city);this._fetch();return;}
+    if(cached){this._hourly=this._buildHourly(cached.current,cached.hourly);this._render(cached.current,cached.city);this._fetch();return;}
     this._renderLoading(); this._fetch();
   },
   async _fetch(){
@@ -2534,10 +2535,10 @@ const Weather={
       var res=await Promise.all([fetch(uCur),fetch(uHour)]);
       if(!res[0].ok||!res[1].ok)throw new Error('HTTP error');
       var cur=await res[0].json(),hour=await res[1].json();
-      this._hourly=hour.hours; this.setCache(cur,hour.hours,city); this._render(cur,city);
+      this._hourly=this._buildHourly(cur,hour.hours); this.setCache(cur,hour.hours,city); this._render(cur,city);
     }catch(e){
       var cached=this.getCache();
-      if(cached){this._hourly=cached.hourly;this._render(cached.current,cached.city);}
+      if(cached){this._hourly=this._buildHourly(cached.current,cached.hourly);this._render(cached.current,cached.city);}
       else this._renderError();
     }
   },
