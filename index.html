@@ -2533,7 +2533,6 @@ const Weather={
       var res=await Promise.all([fetch(uCur),fetch(uHour)]);
       if(!res[0].ok||!res[1].ok)throw new Error('HTTP error');
       var cur=await res[0].json(),hour=await res[1].json();
-      if(cur.code!=='200'||hour.code!=='200')throw new Error('API error');
       this._hourly=hour.hours; this.setCache(cur,hour.hours,city); this._render(cur,city);
     }catch(e){
       var cached=this.getCache();
