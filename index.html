@@ -2533,8 +2533,14 @@ const Weather={
     try{
       var res=await Promise.all([fetch(uCur),fetch(uHour)]);
       if(!res[0].ok||!res[1].ok)throw new Error('HTTP error');
-      var cur=await res[0].json(),hour=await res[1].json();
-      this._hourly=hour.hours; this.setCache(cur,hour.hours,city); this._render(cur,city);
+      var rawCur=await res[0].json(),rawHour=await res[1].json();
+      var cur={condition:{code:rawCur.now.icon,text:rawCur.now.text},temperature:{value:parseFloat(rawCur.now.temp)}};
+      var hourly=(rawHour.hourly||[]).map(function(h){
+        var pop=parseFloat(h.pop||0)/100;
+        var precipAmount=parseFloat(h.precip||0);
+        return {forecastTime:h.fxTime,condition:{code:h.icon,text:h.text},temperature:{value:parseFloat(h.temp)},precipitation:{type:precipAmount>0?'rain':'none',probability:pop,amount:{value:precipAmount}}};
+      });
+      this._hourly=hourly; this.setCache(cur,hourly,city); this._render(cur,city);
     }catch(e){
       var cached=this.getCache();
       if(cached){this._hourly=cached.hourly;this._render(cached.current,cached.city);}
