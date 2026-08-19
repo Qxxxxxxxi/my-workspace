@@ -2720,7 +2720,15 @@ const News={
   _setCache(items){try{localStorage.setItem('wb_news_cache',JSON.stringify({_ver:this._cacheVer,date:todayStr(),items:items}));}catch(e){}},
   _show(){
     el('newsSub').textContent=todayStr()+' · 共 '+this._cards.length+' 条热点';
-    el('newsOverlay').classList.add('show');
+    var ov=el('newsOverlay');
+    // 强制顶部安全距离：测量真实 safe-area-inset-top，兜底47px(灵动岛)，再加44px标题区
+    var probe=document.createElement('div');
+    probe.style.cssText='position:fixed;top:0;left:0;padding-top:env(safe-area-inset-top,0);visibility:hidden;pointer-events:none';
+    document.body.appendChild(probe);
+    var sat=probe.offsetHeight||0;
+    document.body.removeChild(probe);
+    ov.style.paddingTop=(Math.max(sat,47)+44)+'px';
+    ov.classList.add('show');
     this._render();
   },
   _render(){
