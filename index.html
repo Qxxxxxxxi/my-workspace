@@ -333,7 +333,7 @@ tbody tr:hover{background:var(--bg-primary)}
 .wx-hour-card.rain{background:linear-gradient(135deg,#e3f2fd,#bbdefb)}
 .wx-hour-card.now{border:2px solid var(--accent-blue)}
 /* News stack overlay */
-.news-overlay{position:fixed;inset:0;background:linear-gradient(160deg,var(--bg-primary),var(--bg-sidebar));z-index:300;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0)+16px) 20px calc(env(safe-area-inset-bottom,0)+16px)}
+.news-overlay{position:fixed;inset:0;background:linear-gradient(160deg,var(--bg-primary),var(--bg-sidebar));z-index:300;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0)+44px) 20px calc(env(safe-area-inset-bottom,0)+16px)}
 .news-overlay.show{display:flex}
 .news-head{display:flex;justify-content:space-between;align-items:center}
 .news-title{font-size:20px;font-weight:700}
@@ -2724,18 +2724,32 @@ const News={
     this._render();
   },
   _render(){
-    var stage=el('newsStage');stage.innerHTML='';
+    var stage=el('newsStage');
+    if(!this._cardEls){
+      this._cardEls=[];
+      for(var i=0;i<3;i++){
+        var c=document.createElement('div');c.className='news-card';
+        c.style.transition='none';
+        stage.appendChild(c);this._cardEls.push(c);
+        this._bindDrag(c);
+      }
+    }
     var n=Math.min(3,this._cards.length-this._idx);
-    for(var k=n-1;k>=0;k--){
-      var c=this._cards[this._idx+k];
-      var card=document.createElement('div');
-      card.className='news-card';
-      card.style.transform='translate(-50%,-50%) scale('+(1-k*0.05)+') translateY('+(k*14)+'px)';
-      card.style.zIndex=String(10-k);
-      card.style.opacity=k===0?'1':String(1-k*0.25);
-      card.innerHTML='<div class="nc-src"><span class="nc-tag" style="background:'+c.color+'">'+this._esc(c.src)+'</span><span class="nc-rank">#'+c.rank+'</span></div><div class="nc-title">'+this._esc(c.title)+'</div>'+(c.hot?'<div class="nc-hot">🔥 '+this._esc(this._fmtHot(c.hot))+'</div>':'');
-      if(k===0)this._bindDrag(card);
-      stage.appendChild(card);
+    for(var i=0;i<3;i++){
+      var cardEl=this._cardEls[i];
+      if(i>=n){cardEl.style.display='none';continue;}
+      cardEl.style.display='flex';
+      var c=this._cards[this._idx+i];
+      var wasFly=cardEl.classList.contains('fly');
+      cardEl.classList.remove('fly');
+      cardEl.innerHTML='<div class="nc-src"><span class="nc-tag" style="background:'+c.color+'">'+this._esc(c.src)+'</span><span class="nc-rank">#'+c.rank+'</span></div><div class="nc-title">'+this._esc(c.title)+'</div>'+(c.hot?'<div class="nc-hot">🔥 '+this._esc(this._fmtHot(c.hot))+'</div>':'');
+      cardEl.style.zIndex=String(10-i);
+      cardEl.style.opacity=i===0?'1':String(1-i*0.25);
+      var tgt='translate(-50%,-50%) scale('+(1-i*0.05)+') translateY('+(i*14)+'px)';
+      if(wasFly){cardEl.style.transition='none';cardEl.style.transform=tgt;void cardEl.offsetWidth;cardEl.style.transition='';}
+      else{cardEl.style.transform=tgt;
+        if(cardEl.style.transition==='none'){void cardEl.offsetWidth;cardEl.style.transition='';}
+      }
     }
     el('newsCount').textContent='还剩 '+(this._cards.length-this._idx)+' 条';
   },
@@ -2764,10 +2778,22 @@ const News={
     var self=this;
     card.classList.add('fly');
     card.style.transform='translate(calc(-50% + '+(dx*3)+'px),-50%) rotate('+(dx*0.15)+'deg)';
+    var fi=this._cardEls.indexOf(card);
+    if(fi>=0){
+      for(var j=fi+1;j<this._cardEls.length;j++){
+        var ec=this._cardEls[j];
+        if(ec.style.display==='none')continue;
+        var ns=j-1;
+        ec.style.zIndex=String(10-ns);
+        ec.style.opacity=ns===0?'1':String(1-ns*0.25);
+        ec.style.transform='translate(-50%,-50%) scale('+(1-ns*0.05)+') translateY('+(ns*14)+'px)';
+      }
+    }
     setTimeout(function(){
       self._idx++;
-      if(self._idx>=self._cards.length)self.close();
-      else self._render();
+      if(self._idx>=self._cards.length){self.close();return;}
+      if(fi>=0){self._cardEls.splice(fi,1);self._cardEls.push(card);}
+      self._render();
     },300);
   },
   close(){
