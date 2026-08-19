@@ -2689,7 +2689,7 @@ const News={
   init(){
     if(this._sessionShown)return;
     this._sessionShown=true;
-    if(localStorage.getItem('wb_news_seen')===todayStr())return;
+    if(location.hash!=='#news'&&localStorage.getItem('wb_news_seen')===todayStr())return;
     var self=this;
     this._load().then(function(items){
       if(!items||!items.length)return;
