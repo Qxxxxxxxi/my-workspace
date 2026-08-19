@@ -1,0 +1,53 @@
+name: Fetch Hot News
+
+on:
+  schedule:
+    - cron: "30 22,4,10 * * *"   # 每天北京时间 06:30 / 12:30 / 18:30 自动抓取
+  workflow_dispatch:             # 支持手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch hot lists and write news.json
+        run: |
+          python3 << 'PYEOF'
+          import json, urllib.request, datetime
+          base = "https://dailyhot-ruby-nine.vercel.app"
+          api_names = {"toutiao": "toutiao", "thepaper": "thepaper", "qqnews": "qq-news"}
+          tz = datetime.timezone(datetime.timedelta(hours=8))
+          out = {"date": datetime.datetime.now(tz).strftime("%Y-%m-%d"), "sources": {}}
+          for key, api in api_names.items():
+              try:
+                  req = urllib.request.Request(base + "/" + api, headers={"User-Agent": "Mozilla/5.0"})
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      d = json.loads(r.read())
+                  out["sources"][key] = [
+                      {"title": str(x.get("title", "")), "hot": str(x.get("hot") or "")}
+                      for x in (d.get("data") or [])[:15]
+                  ]
+                  print(key, len(out["sources"][key]), "items")
+              except Exception as e:
+                  print(key, "FAILED:", e)
+                  out["sources"][key] = []
+          with open("news.json", "w", encoding="utf-8") as f:
+              json.dump(out, f, ensure_ascii=False)
+          print("news.json written")
+          PYEOF
+
+      - name: Commit news.json if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add news.json
+          if git diff --cached --quiet; then
+            echo "no changes"
+          else
+            git commit -m "chore: update hot news"
+            git push
+          fi
