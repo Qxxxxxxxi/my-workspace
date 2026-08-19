@@ -332,6 +332,27 @@ tbody tr:hover{background:var(--bg-primary)}
 .wx-hour-card{min-width:58px;text-align:center;padding:10px 4px;border-radius:var(--radius-btn);background:var(--bg-primary);flex-shrink:0}
 .wx-hour-card.rain{background:linear-gradient(135deg,#e3f2fd,#bbdefb)}
 .wx-hour-card.now{border:2px solid var(--accent-blue)}
+/* News stack overlay */
+.news-overlay{position:fixed;inset:0;background:linear-gradient(160deg,var(--bg-primary),var(--bg-sidebar));z-index:300;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0)+16px) 20px calc(env(safe-area-inset-bottom,0)+16px)}
+.news-overlay.show{display:flex}
+.news-head{display:flex;justify-content:space-between;align-items:center}
+.news-title{font-size:20px;font-weight:700}
+.news-skip-btn{background:var(--bg-card);border:none;border-radius:20px;padding:8px 14px;font-size:13px;color:var(--text-secondary);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.news-skip-btn:active{transform:scale(.96)}
+.news-sub{font-size:12px;color:var(--text-secondary);margin-top:4px}
+.news-stage{flex:1;position:relative;margin:16px 0;overflow:hidden}
+.news-card{position:absolute;left:50%;top:50%;width:min(88%,360px);max-height:100%;background:var(--bg-card);border-radius:18px;padding:22px 20px;box-shadow:0 6px 24px rgba(0,0,0,.12);display:flex;flex-direction:column;justify-content:center;gap:12px;touch-action:none;user-select:none;-webkit-user-select:none;transition:transform .3s ease,opacity .3s ease}
+.news-card .nc-src{display:flex;align-items:center;gap:8px}
+.news-card .nc-tag{font-size:11px;font-weight:600;color:#fff;border-radius:10px;padding:3px 10px}
+.news-card .nc-rank{font-size:12px;color:var(--text-secondary)}
+.news-card .nc-title{font-size:19px;font-weight:700;line-height:1.45;word-break:break-word}
+.news-card .nc-hot{font-size:13px;color:var(--accent-orange);font-weight:600}
+.news-card.dragging{transition:none;cursor:grabbing}
+.news-card.fly{transition:transform .35s ease,opacity .35s ease;opacity:0}
+.news-foot{text-align:center}
+.news-count{font-size:13px;color:var(--text-secondary);margin-bottom:4px}
+.news-hint{font-size:12px;color:var(--text-tertiary)}
+
 .wx-hour-time{font-size:11px;color:var(--text-secondary)}
 .wx-hour-icon{font-size:22px;margin:4px 0}
 .wx-hour-temp{font-size:13px;font-weight:600}
@@ -629,6 +650,20 @@ tbody tr:hover{background:var(--bg-primary)}
         <div class="wx-modal-sub" id="wxModalSub"></div>
         <div class="wx-alert" id="wxAlert"></div>
         <div class="wx-hour-list" id="wxHourList"></div>
+      </div>
+    </div>
+
+    <!-- ===== News Stack (daily hot news cards) ===== -->
+    <div class="news-overlay" id="newsOverlay">
+      <div class="news-head">
+        <div class="news-title">🔥 今日热点</div>
+        <button class="news-skip-btn" onclick="News.close()">跳过，进入工作台</button>
+      </div>
+      <div class="news-sub" id="newsSub"></div>
+      <div class="news-stage" id="newsStage"></div>
+      <div class="news-foot">
+        <div class="news-count" id="newsCount"></div>
+        <div class="news-hint">← 左右滑动查看下一条 →</div>
       </div>
     </div>
 
@@ -2646,6 +2681,112 @@ const Weather={
   _renderError(){el('wxIcon').textContent='\u274c';el('wxTemp').textContent='--';el('wxDesc').textContent='获取失败';el('wxCity').textContent='点击重试';el('wxHint').textContent='';el('wxHint').className='ov-weather-hint';}
 };
 
+/* ===== News (daily hot news stack) ===== */
+const News={
+  _host:'https://dailyhot-ruby-nine.vercel.app', /* DailyHotApi 自部署实例（Vercel） */
+  _sources:[{type:'toutiao',name:'今日头条',color:'#F04142'},{type:'thepaper',name:'澎湃新闻',color:'#EB5B2F'},{type:'qq-news',name:'腾讯新闻',color:'#0052D9'}],
+  _perSource:10,
+  _cards:[],_idx:0,_sessionShown:false,_cacheVer:1,
+  init(){
+    if(this._sessionShown)return;
+    this._sessionShown=true;
+    if(localStorage.getItem('wb_news_seen')===todayStr())return;
+    if(!this._host)return;
+    var self=this;
+    this._load().then(function(items){
+      if(!items||!items.length)return;
+      self._cards=items;self._idx=0;self._show();
+    });
+  },
+  _load(){
+    var cached=this._getCache();
+    if(cached)return Promise.resolve(cached);
+    var self=this,base=this._host.replace(/\/+$/,'');
+    var ps=this._sources.map(function(s){
+      return fetch(base+'/'+s.type).then(function(r){return r.json();}).then(function(d){
+        if(!d||!d.data)return [];
+        return d.data.slice(0,self._perSource).map(function(it,i){
+          return {src:s.name,color:s.color,rank:i+1,title:String(it.title||''),hot:String(it.hot||'')};
+        });
+      }).catch(function(){return [];});
+    });
+    return Promise.all(ps).then(function(arrs){
+      var items=[];
+      for(var i=0;i<self._perSource;i++){
+        for(var j=0;j<arrs.length;j++){if(arrs[j][i])items.push(arrs[j][i]);}
+      }
+      if(items.length)self._setCache(items);
+      return items;
+    });
+  },
+  _getCache(){var r=localStorage.getItem('wb_news_cache');if(!r)return null;try{var d=JSON.parse(r);if(d._ver!==this._cacheVer||d.date!==todayStr()||!d.items||!d.items.length)return null;return d.items;}catch(e){return null;}},
+  _setCache(items){try{localStorage.setItem('wb_news_cache',JSON.stringify({_ver:this._cacheVer,date:todayStr(),items:items}));}catch(e){}},
+  _show(){
+    el('newsSub').textContent=todayStr()+' · 共 '+this._cards.length+' 条热点';
+    el('newsOverlay').classList.add('show');
+    this._render();
+  },
+  _render(){
+    var stage=el('newsStage');stage.innerHTML='';
+    var n=Math.min(3,this._cards.length-this._idx);
+    for(var k=n-1;k>=0;k--){
+      var c=this._cards[this._idx+k];
+      var card=document.createElement('div');
+      card.className='news-card';
+      card.style.transform='translate(-50%,-50%) scale('+(1-k*0.05)+') translateY('+(k*14)+'px)';
+      card.style.zIndex=String(10-k);
+      card.style.opacity=k===0?'1':String(1-k*0.25);
+      card.innerHTML='<div class="nc-src"><span class="nc-tag" style="background:'+c.color+'">'+this._esc(c.src)+'</span><span class="nc-rank">#'+c.rank+'</span></div><div class="nc-title">'+this._esc(c.title)+'</div>'+(c.hot?'<div class="nc-hot">🔥 '+this._esc(this._fmtHot(c.hot))+'</div>':'');
+      if(k===0)this._bindDrag(card);
+      stage.appendChild(card);
+    }
+    el('newsCount').textContent='还剩 '+(this._cards.length-this._idx)+' 条';
+  },
+  _bindDrag(card){
+    var self=this,sx=0,dx=0,drag=false;
+    card.addEventListener('pointerdown',function(e){
+      drag=true;sx=e.clientX;dx=0;
+      card.classList.add('dragging');
+      try{card.setPointerCapture(e.pointerId);}catch(err){}
+    });
+    card.addEventListener('pointermove',function(e){
+      if(!drag)return;
+      dx=e.clientX-sx;
+      card.style.transform='translate(calc(-50% + '+dx+'px),-50%) rotate('+(dx*0.05)+'deg)';
+    });
+    function up(){
+      if(!drag)return;drag=false;
+      card.classList.remove('dragging');
+      if(Math.abs(dx)>80)self._fly(card,dx);
+      else card.style.transform='translate(-50%,-50%)';
+    }
+    card.addEventListener('pointerup',up);
+    card.addEventListener('pointercancel',up);
+  },
+  _fly(card,dx){
+    var self=this;
+    card.classList.add('fly');
+    card.style.transform='translate(calc(-50% + '+(dx*3)+'px),-50%) rotate('+(dx*0.15)+'deg)';
+    setTimeout(function(){
+      self._idx++;
+      if(self._idx>=self._cards.length)self.close();
+      else self._render();
+    },300);
+  },
+  close(){
+    el('newsOverlay').classList.remove('show');
+    localStorage.setItem('wb_news_seen',todayStr());
+  },
+  _esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');},
+  _fmtHot(h){
+    if(!/^[0-9,.]+$/.test(h))return h;
+    var v=parseFloat(h.replace(/,/g,''));
+    if(isNaN(v))return h;
+    if(v>=10000)return (v/10000).toFixed(1).replace(/\.0$/,'')+' 万热度';
+    return v+' 热度';
+  }
+};
+
 /* ===== Overview ===== */
 const Overview = {
   render(){
@@ -2675,6 +2816,7 @@ const Overview = {
     el('ovCards').innerHTML = cards.map(c=>`<div class="ov-card" onclick="Nav.go('${c.page}')"><div class="ov-icon">${c.icon}</div><div class="ov-label">${c.label}</div><div class="ov-value">${c.value}</div></div>`).join('');
     // Weather + Holidays + Work schedule
     Weather.init();
+    News.init();
     Holidays.render(now.getFullYear(), now.getMonth()+1);
     WorkSchedule.init();
     // Backup reminder
