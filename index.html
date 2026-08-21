@@ -333,7 +333,7 @@ tbody tr:hover{background:var(--bg-primary)}
 .wx-hour-card.rain{background:linear-gradient(135deg,#e3f2fd,#bbdefb)}
 .wx-hour-card.now{border:2px solid var(--accent-blue)}
 /* News stack overlay */
-.news-overlay{position:fixed;inset:0;background:linear-gradient(160deg,var(--bg-primary),var(--bg-sidebar));z-index:300;display:none;flex-direction:column;padding:calc(max(env(safe-area-inset-top,0),59px)+44px) 20px calc(env(safe-area-inset-bottom,0)+16px)}
+.news-overlay{position:fixed;inset:0;background:linear-gradient(160deg,var(--bg-primary),var(--bg-sidebar));z-index:300;display:none;flex-direction:column;padding:max(var(--sp-md),env(safe-area-inset-top,0)) 20px calc(env(safe-area-inset-bottom,0)+16px)}
 .news-overlay.show{display:flex}
 .news-head{display:flex;justify-content:space-between;align-items:center}
 .news-title{font-size:20px;font-weight:700}
@@ -341,17 +341,22 @@ tbody tr:hover{background:var(--bg-primary)}
 .news-skip-btn:active{transform:scale(.96)}
 .news-sub{font-size:12px;color:var(--text-secondary);margin-top:4px}
 .news-stage{flex:1;position:relative;margin:16px 0;overflow:hidden}
-.news-card{position:absolute;left:50%;top:50%;width:min(88%,360px);max-height:100%;background:var(--bg-card);border-radius:18px;padding:22px 20px;box-shadow:0 6px 24px rgba(0,0,0,.12);display:flex;flex-direction:column;justify-content:center;gap:12px;touch-action:none;user-select:none;-webkit-user-select:none;transition:transform .3s ease,opacity .3s ease}
+.news-card{position:absolute;left:50%;top:50%;width:min(94%,440px);height:100%;background:var(--bg-card);border-radius:18px;padding:22px 20px;box-shadow:0 6px 24px rgba(0,0,0,.12);display:flex;flex-direction:column;justify-content:space-between;gap:12px;touch-action:none;user-select:none;-webkit-user-select:none;transition:transform .3s ease,opacity .3s ease}
 .news-card .nc-src{display:flex;align-items:center;gap:8px}
 .news-card .nc-tag{font-size:11px;font-weight:600;color:#fff;border-radius:10px;padding:3px 10px}
 .news-card .nc-rank{font-size:12px;color:var(--text-secondary)}
-.news-card .nc-title{font-size:19px;font-weight:700;line-height:1.45;word-break:break-word}
+.news-card .nc-title{font-size:22px;font-weight:700;line-height:1.45;word-break:break-word}
 .news-card .nc-hot{font-size:13px;color:var(--accent-orange);font-weight:600}
 .news-card.dragging{transition:none;cursor:grabbing}
 .news-card.fly{transition:transform .35s ease,opacity .35s ease;opacity:0}
 .news-foot{text-align:center}
 .news-count{font-size:13px;color:var(--text-secondary);margin-bottom:4px}
 .news-hint{font-size:12px;color:var(--text-tertiary)}
+.news-progress{display:flex;flex-direction:column;align-items:center;gap:6px}
+.np-text{font-size:13px;color:var(--text-secondary)}
+.np-dots{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;max-width:240px}
+.np-dot{width:5px;height:5px;border-radius:50%;background:var(--border-subtle)}
+.np-dot.on{background:var(--accent-blue)}
 
 .wx-hour-time{font-size:11px;color:var(--text-secondary)}
 .wx-hour-icon{font-size:22px;margin:4px 0}
@@ -512,6 +517,7 @@ tbody tr:hover{background:var(--bg-primary)}
   .sidebar{transform:translateX(-100%)}
   .sidebar.open{transform:translateX(0)}
   .main{margin-left:0;padding:var(--sp-md);padding-top:max(var(--sp-md),env(safe-area-inset-top,0));padding-bottom:calc(var(--tabbar-h)+env(safe-area-inset-bottom,0)+60px)}
+  .news-overlay{bottom:calc(var(--tabbar-h)+env(safe-area-inset-bottom,0))}
   .mobile-tabbar{display:block}
   .overlay.show{display:block}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
@@ -539,6 +545,7 @@ tbody tr:hover{background:var(--bg-primary)}
   .sidebar{transform:translateX(-100%);position:fixed}
   .sidebar.open{transform:translateX(0)}
   .main{margin-left:0;padding:var(--sp-md);padding-top:max(var(--sp-md),env(safe-area-inset-top,0));padding-bottom:calc(var(--tabbar-h)+env(safe-area-inset-bottom,0)+60px)}
+  .news-overlay{bottom:calc(var(--tabbar-h)+env(safe-area-inset-bottom,0))}
   .mobile-tabbar{display:block}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
   .two-col{grid-template-columns:1fr}
@@ -657,13 +664,12 @@ tbody tr:hover{background:var(--bg-primary)}
     <div class="news-overlay" id="newsOverlay">
       <div class="news-head">
         <div class="news-title">🔥 今日热点</div>
-        <button class="news-skip-btn" onclick="News.close()">跳过，进入工作台</button>
+        <button class="news-skip-btn" onclick="News.close()">跳过</button>
       </div>
       <div class="news-sub" id="newsSub"></div>
       <div class="news-stage" id="newsStage"></div>
       <div class="news-foot">
-        <div class="news-count" id="newsCount"></div>
-        <div class="news-hint">← 左右滑动查看下一条 →</div>
+        <div class="news-progress" id="newsProgress"></div>
       </div>
     </div>
 
@@ -2730,16 +2736,8 @@ const News={
   _getCache(){var r=localStorage.getItem('wb_news_cache');if(!r)return null;try{var d=JSON.parse(r);if(d._ver!==this._cacheVer||d.date!==todayStr()||!d.items||!d.items.length)return null;return d.items;}catch(e){return null;}},
   _setCache(items){try{localStorage.setItem('wb_news_cache',JSON.stringify({_ver:this._cacheVer,date:todayStr(),items:items}));}catch(e){}},
   _show(){
-    el('newsSub').textContent=todayStr()+' · 共 '+this._cards.length+' 条热点';
-    var ov=el('newsOverlay');
-    // 强制顶部安全距离：测量真实 safe-area-inset-top，兜底47px(灵动岛)，再加44px标题区
-    var probe=document.createElement('div');
-    probe.style.cssText='position:fixed;top:0;left:0;padding-top:env(safe-area-inset-top,0);visibility:hidden;pointer-events:none';
-    document.body.appendChild(probe);
-    var sat=probe.offsetHeight||0;
-    document.body.removeChild(probe);
-    ov.style.paddingTop=(Math.max(sat,47)+44)+'px';
-    ov.classList.add('show');
+    el('newsSub').textContent=todayStr();
+    el('newsOverlay').classList.add('show');
     this._render();
   },
   _render(){
@@ -2764,13 +2762,15 @@ const News={
       cardEl.innerHTML='<div class="nc-src"><span class="nc-tag" style="background:'+c.color+'">'+this._esc(c.src)+'</span><span class="nc-rank">#'+c.rank+'</span></div><div class="nc-title">'+this._esc(c.title)+'</div>'+(c.hot?'<div class="nc-hot">🔥 '+this._esc(this._fmtHot(c.hot))+'</div>':'');
       cardEl.style.zIndex=String(10-i);
       cardEl.style.opacity=i===0?'1':String(1-i*0.25);
-      var tgt='translate(-50%,-50%) scale('+(1-i*0.05)+') translateY('+(i*14)+'px)';
+      var tgt='translate(-50%,-50%) scale('+(1-i*0.08)+') translateY('+(i*22)+'px)';
       if(wasFly){cardEl.style.transition='none';cardEl.style.transform=tgt;void cardEl.offsetWidth;cardEl.style.transition='';}
       else{cardEl.style.transform=tgt;
         if(cardEl.style.transition==='none'){void cardEl.offsetWidth;cardEl.style.transition='';}
       }
     }
-    el('newsCount').textContent='还剩 '+(this._cards.length-this._idx)+' 条';
+    var total=this._cards.length,seen=this._idx+1;
+    var dots='';for(var k=0;k<total;k++){dots+='<span class="np-dot'+(k<seen?' on':'')+'"></span>';}
+    el('newsProgress').innerHTML='<span class="np-text">'+seen+' / '+total+'</span><div class="np-dots">'+dots+'</div>';
   },
   _bindDrag(card){
     var self=this,sx=0,dx=0,drag=false;
