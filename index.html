@@ -2242,6 +2242,8 @@ const Nav = {
     el('moreSheet').innerHTML = more.map(p=>`<button class="more-sheet-item" onclick="Nav.go('${p.id}');Nav.closeMore()"><span class="more-icon">${p.icon}</span>${p.label}</button>`).join('');
   },
   go(id){
+    var no=el('newsOverlay');
+    if(no&&no.classList.contains('show')&&typeof News!=='undefined') News.close();
     this.current = id;
     document.querySelectorAll('#navList .nav-item').forEach(b=>b.classList.toggle('active', b.dataset.page===id));
     document.querySelectorAll('#tabItems .tab-item').forEach(b=>{ const o = b.getAttribute('onclick')||''; b.classList.toggle('active', o.indexOf(`'${id}'`)>=0); });
