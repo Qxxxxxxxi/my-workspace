@@ -341,7 +341,7 @@ tbody tr:hover{background:var(--bg-primary)}
 .news-skip-btn:active{transform:scale(.96)}
 .news-sub{font-size:12px;color:var(--text-secondary);margin-top:4px}
 .news-stage{flex:1;position:relative;margin:16px 0;overflow:hidden}
-.news-card{position:absolute;left:50%;top:50%;width:min(94%,440px);height:100%;background:var(--bg-card);border-radius:18px;padding:22px 20px;box-shadow:0 6px 24px rgba(0,0,0,.12);display:flex;flex-direction:column;justify-content:space-between;gap:12px;touch-action:none;user-select:none;-webkit-user-select:none;transition:transform .3s ease,opacity .3s ease}
+.news-card{position:absolute;left:50%;top:0;bottom:0;width:min(94%,440px);background:var(--bg-card);border-radius:18px;padding:22px 20px;box-shadow:0 6px 24px rgba(0,0,0,.12);display:flex;flex-direction:column;justify-content:space-between;gap:12px;touch-action:none;user-select:none;-webkit-user-select:none;transition:transform .3s ease,opacity .3s ease}
 .news-card .nc-src{display:flex;align-items:center;gap:8px}
 .news-card .nc-tag{font-size:11px;font-weight:600;color:#fff;border-radius:10px;padding:3px 10px}
 .news-card .nc-rank{font-size:12px;color:var(--text-secondary)}
@@ -2762,7 +2762,7 @@ const News={
       cardEl.innerHTML='<div class="nc-src"><span class="nc-tag" style="background:'+c.color+'">'+this._esc(c.src)+'</span><span class="nc-rank">#'+c.rank+'</span></div><div class="nc-title">'+this._esc(c.title)+'</div>'+(c.hot?'<div class="nc-hot">🔥 '+this._esc(this._fmtHot(c.hot))+'</div>':'');
       cardEl.style.zIndex=String(10-i);
       cardEl.style.opacity=i===0?'1':String(1-i*0.25);
-      var tgt='translate(-50%,-50%) scale('+(1-i*0.08)+') translateY('+(i*22)+'px)';
+      var tgt='translateX(-50%) scale('+(1-i*0.08)+') translateY('+(i*22)+'px)';
       if(wasFly){cardEl.style.transition='none';cardEl.style.transform=tgt;void cardEl.offsetWidth;cardEl.style.transition='';}
       else{cardEl.style.transform=tgt;
         if(cardEl.style.transition==='none'){void cardEl.offsetWidth;cardEl.style.transition='';}
@@ -2782,13 +2782,13 @@ const News={
     card.addEventListener('pointermove',function(e){
       if(!drag)return;
       dx=e.clientX-sx;
-      card.style.transform='translate(calc(-50% + '+dx+'px),-50%) rotate('+(dx*0.05)+'deg)';
+      card.style.transform='translateX(calc(-50% + '+dx+'px)) rotate('+(dx*0.05)+'deg)';
     });
     function up(){
       if(!drag)return;drag=false;
       card.classList.remove('dragging');
       if(Math.abs(dx)>80)self._fly(card,dx);
-      else card.style.transform='translate(-50%,-50%)';
+      else card.style.transform='translateX(-50%)';
     }
     card.addEventListener('pointerup',up);
     card.addEventListener('pointercancel',up);
@@ -2796,7 +2796,7 @@ const News={
   _fly(card,dx){
     var self=this;
     card.classList.add('fly');
-    card.style.transform='translate(calc(-50% + '+(dx*3)+'px),-50%) rotate('+(dx*0.15)+'deg)';
+    card.style.transform='translateX(calc(-50% + '+(dx*3)+'px)) rotate('+(dx*0.15)+'deg)';
     var fi=this._cardEls.indexOf(card);
     if(fi>=0){
       for(var j=fi+1;j<this._cardEls.length;j++){
@@ -2805,7 +2805,7 @@ const News={
         var ns=j-1;
         ec.style.zIndex=String(10-ns);
         ec.style.opacity=ns===0?'1':String(1-ns*0.25);
-        ec.style.transform='translate(-50%,-50%) scale('+(1-ns*0.05)+') translateY('+(ns*14)+'px)';
+        ec.style.transform='translateX(-50%) scale('+(1-ns*0.05)+') translateY('+(ns*14)+'px)';
       }
     }
     setTimeout(function(){
