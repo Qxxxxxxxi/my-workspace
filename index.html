@@ -2347,8 +2347,12 @@ const WorkSchedule = {
 
     // Weekend countdown
     const dow = now.getDay(); // 0=Sun, 6=Sat
+    const isLastWorkday = (s.weekend==='double' && dow===5) || (s.weekend==='single' && dow===6);
     if(s.weekend==='none'){
       we.textContent = '全周工作 ⚡';
+    } else if(isLastWorkday){
+      if(curMin >= endMin){ we.textContent = '周末开始啦 🎉'; we.className = 'ov-work-right ov-work-off'; }
+      else { we.textContent = '今天下班就到周末啦 🎉'; we.className = 'ov-work-right'; }
     } else if(s.weekend==='double'){
       if(dow===0){ we.textContent = '今天是周日 🌿'; we.className = 'ov-work-right ov-work-off'; }
       else if(dow===6){ we.textContent = '愉快周末 🌿'; we.className = 'ov-work-right ov-work-off'; }
@@ -2360,7 +2364,7 @@ const WorkSchedule = {
     } else { // single weekend
       if(dow===0){ we.textContent = '愉快周日 🌿'; we.className = 'ov-work-right ov-work-off'; }
       else {
-        const daysLeft = dow===6 ? 1 : (7 - dow);
+        const daysLeft = 7 - dow;
         we.textContent = `还有 ${daysLeft} 天到周日`;
         we.className = 'ov-work-right';
       }
@@ -2464,7 +2468,7 @@ const Holidays = {
     return next[0]||null;
   },
   render(y,m){
-    var list=this.getMonthHolidays(y,m);
+    var list=this.getMonthHolidays(y,m).filter(function(h){return h.date>=todayStr();});
     var c=document.getElementById('ovHolidayList'); if(!c) return;
     if(!list.length){
       var next=this.getNextHoliday();
@@ -2696,6 +2700,13 @@ const News={
       self._cards=items;self._idx=0;self._show();
     });
   },
+  open(){
+    var self=this;
+    this._load().then(function(items){
+      if(!items||!items.length){ toast('暂无热点数据'); return; }
+      self._cards=items;self._idx=0;self._show();
+    });
+  },
   _load(){
     var cached=this._getCache();
     if(cached)return Promise.resolve(cached);
@@ -2842,9 +2853,10 @@ const Overview = {
       {icon:'💝',label:na?'最近纪念':'纪念日',value:na?na.text:'无',page:'anniversary'},
       {icon:'🩸',label:'经期状态',value:pd||'未记录',page:'period'},
       {icon:'📝',label:'备忘录',value:memos.records.length+' 条'+(pm?'（'+pm+'置顶）':''),page:'memos'},
-      {icon:'🍳',label:'食谱',value:recipes.records.length+' 道菜',page:'recipe'}
+      {icon:'🍳',label:'食谱',value:recipes.records.length+' 道菜',page:'recipe'},
+      {icon:'🔥',label:'今日热点',value:(function(){try{var d=JSON.parse(localStorage.getItem('wb_news_cache'));if(d&&d.date===todayStr()&&d.items&&d.items.length)return d.items.length+' 条';}catch(e){}return '点开查看';})(),action:'News.open()'}
     ];
-    el('ovCards').innerHTML = cards.map(c=>`<div class="ov-card" onclick="Nav.go('${c.page}')"><div class="ov-icon">${c.icon}</div><div class="ov-label">${c.label}</div><div class="ov-value">${c.value}</div></div>`).join('');
+    el('ovCards').innerHTML = cards.map(c=>{ const click=c.action?c.action:`Nav.go('${c.page}')`; return `<div class="ov-card" onclick="${click}"><div class="ov-icon">${c.icon}</div><div class="ov-label">${c.label}</div><div class="ov-value">${c.value}</div></div>`; }).join('');
     // Weather + Holidays + Work schedule
     Weather.init();
     News.init();
